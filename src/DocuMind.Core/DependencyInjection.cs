@@ -16,7 +16,8 @@ namespace DocuMind.Core;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddDocuMindCore(this IServiceCollection services, string postgresConnectionString, int topK = 3)
+    public static IServiceCollection AddDocuMindCore(
+        this IServiceCollection services, string postgresConnectionString, RetrievalOptions? retrieval = null)
     {
         services.AddSingleton(_ =>
         {
@@ -29,12 +30,15 @@ public static class DependencyInjection
         services.AddSingleton<PgVectorChunkStore>();
         services.AddSingleton<IngestionService>();
         services.AddSingleton<QueryRewriter>();
+        services.AddSingleton<LlmReranker>();
+        services.AddSingleton(retrieval ?? new RetrievalOptions());
         services.AddSingleton(sp => new RagChatService(
             sp.GetRequiredService<Embedder>(),
             sp.GetRequiredService<PgVectorChunkStore>(),
             sp.GetRequiredService<IChatClient>(),
             sp.GetRequiredService<QueryRewriter>(),
-            topK,
+            sp.GetRequiredService<LlmReranker>(),
+            sp.GetRequiredService<RetrievalOptions>(),
             sp.GetService<SemanticCache>()));
         return services;
     }

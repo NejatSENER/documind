@@ -10,9 +10,11 @@ namespace DocuMind.Core.Rag;
 public record RagAnswer(
     string SearchQuestion, IReadOnlyList<SearchHit> Sources, IAsyncEnumerable<string> Tokens, CachedAnswer? CacheHit = null);
 
+public record RetrievalOptions(int TopK = 3, int CandidateK = 6, bool Hybrid = true, bool Rerank = true);
+
 public sealed class RagChatService(
-    Embedder embedder, PgVectorChunkStore store, IChatClient chat, QueryRewriter rewriter,
-    int topK = 3, SemanticCache? cache = null)
+    Embedder embedder, PgVectorChunkStore store, IChatClient chat, QueryRewriter rewriter, LlmReranker reranker,
+    RetrievalOptions options, SemanticCache? cache = null)
 {
     public async Task<RagAnswer> AskAsync(
         string question, IReadOnlyList<ChatMessage>? history = null, CancellationToken ct = default)
@@ -23,9 +25,22 @@ public sealed class RagChatService(
         if (cache is not null && await cache.FindAsync(queryVector) is { } hit)
             return new RagAnswer(searchQuestion, hit.Sources, ReplayAsync(hit.Answer), hit);
 
-        var hits = await store.SearchAsync(queryVector, topK, ct);
+        var hits = await RetrieveAsync(searchQuestion, queryVector, ct);
         var messages = PromptBuilder.Build(searchQuestion, hits);
         return new RagAnswer(searchQuestion, hits, StreamAndCacheAsync(searchQuestion, queryVector, hits, messages, ct));
+    }
+
+    public async Task<IReadOnlyList<SearchHit>> RetrieveAsync(
+        string question, ReadOnlyMemory<float> queryVector, CancellationToken ct = default)
+    {
+        var candidateCount = options.Rerank ? options.CandidateK : options.TopK;
+        var candidates = options.Hybrid
+            ? await store.HybridSearchAsync(queryVector, question, candidateCount, ct: ct)
+            : await store.SearchAsync(queryVector, candidateCount, ct);
+
+        return options.Rerank
+            ? await reranker.RerankAsync(question, candidates, options.TopK, ct)
+            : candidates;
     }
 
     private async IAsyncEnumerable<string> StreamAndCacheAsync(

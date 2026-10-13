@@ -14,14 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration
 var ollama = builder.Configuration.GetSection("Ollama").Get<OllamaSettings>()
     ?? throw new InvalidOperationException("Ollama settings are missing.");
-var topK = builder.Configuration.GetValue("Rag:TopK", 3);
+var retrieval = builder.Configuration.GetSection("Rag").Get<RetrievalOptions>() ?? new RetrievalOptions();
 
 // Services
 builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(
     new OllamaApiClient(new Uri(ollama.Endpoint), ollama.EmbeddingModel));
 builder.Services.AddSingleton<IChatClient>(
     new OllamaApiClient(new Uri(ollama.Endpoint), ollama.ChatModel));
-builder.Services.AddDocuMindCore(builder.Configuration.GetConnectionString("Postgres")!, topK);
+builder.Services.AddDocuMindCore(builder.Configuration.GetConnectionString("Postgres")!, retrieval);
 builder.Services.AddConversationHistory(builder.Configuration.GetConnectionString("Mongo")!);
 await builder.Services.AddSemanticCacheAsync(
     builder.Configuration.GetConnectionString("Redis")!,

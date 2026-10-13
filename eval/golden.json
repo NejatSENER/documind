@@ -1,0 +1,14 @@
+[
+  { "question": "Yıllık iznim kaç gün?", "document": "izin-politikasi.md", "chunks": [0] },
+  { "question": "Beş yıldan fazla çalışanın yıllık izni kaç gün?", "document": "izin-politikasi.md", "chunks": [0] },
+  { "question": "Kullanılmayan izinleri sonraki yıla aktarabilir miyim?", "document": "izin-politikasi.md", "chunks": [0, 1] },
+  { "question": "İzin talebini ne kadar önceden yapmalıyım?", "document": "izin-politikasi.md", "chunks": [1] },
+  { "question": "Doğum izni toplam kaç hafta?", "document": "izin-politikasi.md", "chunks": [2] },
+  { "question": "Babalara kaç gün izin veriliyor?", "document": "izin-politikasi.md", "chunks": [3] },
+  { "question": "Doktor raporunu ne zaman teslim etmeliyim?", "document": "izin-politikasi.md", "chunks": [3] },
+  { "question": "Haftada kaç gün evden çalışabilirim?", "document": "izin-politikasi.md", "chunks": [3] },
+  { "question": "Şehir dışında günlük yemek limiti ne kadar?", "document": "masraf-politikasi.md", "chunks": [0] },
+  { "question": "Otel için gecelik en fazla ne kadar harcayabilirim?", "document": "masraf-politikasi.md", "chunks": [0] },
+  { "question": "Taksi masrafı ne zaman karşılanır?", "document": "masraf-politikasi.md", "chunks": [0] },
+  { "question": "Masrafları kaç gün içinde bildirmeliyim?", "document": "masraf-politikasi.md", "chunks": [0] }
+]
