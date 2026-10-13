@@ -8,7 +8,6 @@ using DocuMind.Core.Rag;
 using DocuMind.Core.Storage;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel;
 using MongoDB.Driver;
 using Npgsql;
 using Pgvector.Npgsql;
@@ -28,7 +27,6 @@ public static class DependencyInjection
             return dataSource.Build();
         });
         services.AddSingleton<TextChunker>();
-        services.AddSingleton<Embedder>();
         services.AddSingleton<PgVectorChunkStore>();
         services.AddSingleton<IngestionService>();
         services.AddSingleton<QueryRewriter>();
@@ -45,9 +43,8 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddAgents(this IServiceCollection services, string ollamaEndpoint, string chatModel)
+    public static IServiceCollection AddAgents(this IServiceCollection services)
     {
-        services.AddSingleton(_ => Kernel.CreateBuilder().AddOllamaChatCompletion(chatModel, new Uri(ollamaEndpoint)).Build());
         services.AddSingleton<AgentOrchestrator>();
         return services;
     }

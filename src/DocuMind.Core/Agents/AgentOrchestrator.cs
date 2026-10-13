@@ -5,7 +5,6 @@ using DocuMind.Core.Storage;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.Ollama;
 
 namespace DocuMind.Core.Agents;
 
@@ -41,10 +40,10 @@ public sealed class AgentOrchestrator(Kernel kernel, RagChatService rag, Embedde
             Name = "Arastirmaci",
             Instructions = ResearcherInstructions,
             Kernel = researcherKernel,
-            Arguments = new KernelArguments(new OllamaPromptExecutionSettings
+            Arguments = new KernelArguments(new PromptExecutionSettings
             {
-                Temperature = 0.1f,
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto(),
+                ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.1 },
             }),
         };
 
@@ -64,7 +63,10 @@ public sealed class AgentOrchestrator(Kernel kernel, RagChatService rag, Embedde
             Name = "Denetci",
             Instructions = ReviewerInstructions,
             Kernel = kernel,
-            Arguments = new KernelArguments(new OllamaPromptExecutionSettings { Temperature = 0f }),
+            Arguments = new KernelArguments(new PromptExecutionSettings
+            {
+                ExtensionData = new Dictionary<string, object> { ["temperature"] = 0.0 },
+            }),
         };
 
         var sources = new StringBuilder();

@@ -1,0 +1,30 @@
+:root {
+  --bg: #f1f3f6; --surface: #fff; --ink: #16202c; --muted: #5a6676; --line: #d5dbe2;
+  --accent: #2457c5; --accent-soft: rgba(36, 87, 197, .1); --error: #c5412c;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e141b; --surface: #151d27; --ink: #e3e9f0; --muted: #94a2b2; --line: #283543;
+          --accent: #7fa8ff; --accent-soft: rgba(127, 168, 255, .15); --error: #ff8068; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); line-height: 1.6; }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 18px; }
+main.narrow { max-width: 380px; }
+h1 { margin: 0; font-size: 28px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: grid; gap: 10px; }
+label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+label.check { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 14px; display: flex; gap: 6px; align-items: center; }
+input, textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+label.check input { width: auto; }
+button { font: inherit; font-weight: 600; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button:disabled { opacity: .4; cursor: default; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.between { justify-content: space-between; }
+.muted { color: var(--muted); font-size: 14px; margin: 0; }
+.error { color: var(--error); margin: 0; }
+.answer { font-size: 17px; white-space: pre-wrap; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: ui-monospace, Menlo, monospace; font-size: 13px; padding: 3px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }

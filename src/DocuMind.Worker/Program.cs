@@ -1,17 +1,10 @@
 using DocuMind.Core;
 using DocuMind.Worker;
-using Microsoft.Extensions.AI;
-using OllamaSharp;
 using RabbitMQ.Client;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var ollama = builder.Configuration.GetSection("Ollama");
-var ollamaUri = new Uri(ollama["Endpoint"]!);
-
-builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(
-    new OllamaApiClient(ollamaUri, ollama["EmbeddingModel"]!));
-builder.Services.AddSingleton<IChatClient>(new OllamaApiClient(ollamaUri, ollama["ChatModel"]!));
+builder.Services.AddLlm(builder.Configuration.GetSection("Llm").Get<LlmSettings>() ?? new LlmSettings());
 builder.Services.AddDocuMindCore(builder.Configuration.GetConnectionString("Postgres")!);
 await builder.Services.AddSemanticCacheAsync(builder.Configuration.GetConnectionString("Redis")!, threshold: 0.95);
 
