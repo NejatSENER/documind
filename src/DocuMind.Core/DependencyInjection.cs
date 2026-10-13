@@ -1,3 +1,4 @@
+using DocuMind.Core.Agents;
 using DocuMind.Core.Caching;
 using DocuMind.Core.Chunking;
 using DocuMind.Core.Embeddings;
@@ -7,6 +8,7 @@ using DocuMind.Core.Rag;
 using DocuMind.Core.Storage;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.SemanticKernel;
 using MongoDB.Driver;
 using Npgsql;
 using Pgvector.Npgsql;
@@ -40,6 +42,13 @@ public static class DependencyInjection
             sp.GetRequiredService<LlmReranker>(),
             sp.GetRequiredService<RetrievalOptions>(),
             sp.GetService<SemanticCache>()));
+        return services;
+    }
+
+    public static IServiceCollection AddAgents(this IServiceCollection services, string ollamaEndpoint, string chatModel)
+    {
+        services.AddSingleton(_ => Kernel.CreateBuilder().AddOllamaChatCompletion(chatModel, new Uri(ollamaEndpoint)).Build());
+        services.AddSingleton<AgentOrchestrator>();
         return services;
     }
 

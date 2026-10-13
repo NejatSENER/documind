@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using DocuMind.Core;
+using DocuMind.Core.Agents;
 using DocuMind.Core.History;
 using DocuMind.Core.Messaging;
 using DocuMind.Core.Rag;
@@ -22,6 +23,7 @@ builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(
 builder.Services.AddSingleton<IChatClient>(
     new OllamaApiClient(new Uri(ollama.Endpoint), ollama.ChatModel));
 builder.Services.AddDocuMindCore(builder.Configuration.GetConnectionString("Postgres")!, retrieval);
+builder.Services.AddAgents(ollama.Endpoint, ollama.ChatModel);
 builder.Services.AddConversationHistory(builder.Configuration.GetConnectionString("Mongo")!);
 await builder.Services.AddSemanticCacheAsync(
     builder.Configuration.GetConnectionString("Redis")!,
@@ -87,6 +89,25 @@ app.MapPost("/chat/stream", async (
 
     await history.AppendAsync(conversationId, request.Question, fullAnswer.ToString().Trim(), ct);
 
+    await WriteEventAsync(response, "done", new { }, ct);
+});
+
+app.MapPost("/agent/stream", async (ChatRequest request, AgentOrchestrator agents, HttpResponse response, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Question))
+    {
+        response.StatusCode = StatusCodes.Status400BadRequest;
+        return;
+    }
+
+    response.ContentType = "text/event-stream";
+    response.Headers.CacheControl = "no-cache";
+
+    var result = await agents.RunAsync(request.Question, step => WriteEventAsync(response, "step", step, ct), ct);
+
+    await WriteEventAsync(response, "sources",
+        result.Sources.Select((s, i) => new { Label = PromptBuilder.LabelFor(i), s.DocumentId, s.ChunkIndex, s.Similarity }), ct);
+    await WriteEventAsync(response, "token", result.Answer, ct);
     await WriteEventAsync(response, "done", new { }, ct);
 });
 
