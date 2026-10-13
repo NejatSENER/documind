@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DocuMind</title>
+<style>
+:root {
+  --bg: #F1F3F6; --surface: #FFFFFF; --ink: #16202C; --muted: #5A6676; --line: #D5DBE2;
+  --accent: #2457C5; --accent-soft: rgba(36, 87, 197, .10); --pin: #C5412C;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif; --mono: ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0E141B; --surface: #151D27; --ink: #E3E9F0; --muted: #94A2B2; --line: #283543;
+          --accent: #7FA8FF; --accent-soft: rgba(127, 168, 255, .15); --pin: #FF8068; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--font); }
+main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 20px; }
+h1 { margin: 0; font-size: 28px; }
+.sub { color: var(--muted); margin: 4px 0 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: grid; gap: 12px; }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+textarea, input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+textarea { resize: vertical; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+button { font: inherit; font-weight: 600; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); }
+button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#answer { white-space: pre-wrap; min-height: 3em; font-size: 17px; }
+#answer.empty { color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-size: 13px; padding: 3px 8px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.stats { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.examples button { font-weight: 400; font-size: 14px; padding: 4px 10px; }
+#log { font-family: var(--mono); font-size: 12px; color: var(--muted); max-height: 160px; overflow: auto; white-space: pre-wrap; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>DocuMind</h1>
+    <p class="sub">Şirket dokümanlarına soru sor. Cevap SSE ile kelime kelime akar.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="askTitle">
+    <div class="label" id="askTitle">Soru</div>
+    <textarea id="question" rows="2">Babalara kaç gün izin veriliyor?</textarea>
+    <div class="row examples">
+      <button class="ghost" type="button">Yıllık iznim kaç gün?</button>
+      <button class="ghost" type="button">Evden çalışabilir miyim?</button>
+      <button class="ghost" type="button">Şirket otoparkı ücretli mi?</button>
+    </div>
+    <div class="row">
+      <button id="ask" type="button">Sor</button>
+      <button id="stop" class="ghost" type="button" disabled>Durdur</button>
+      <span class="stats" id="stats"></span>
+    </div>
+  </section>
+
+  <section class="panel" aria-live="polite">
+    <div class="label">Cevap</div>
+    <div id="answer" class="empty">Henüz soru sorulmadı.</div>
+    <div class="stats" id="cacheInfo"></div>
+    <div class="label">Kaynaklar</div>
+    <div class="chips" id="sources"></div>
+  </section>
+
+  <details class="panel">
+    <summary class="label" style="cursor:pointer">Ham SSE yayını</summary>
+    <pre id="log"></pre>
+  </details>
+
+  <section class="panel" aria-labelledby="docTitle">
+    <div class="label" id="docTitle">Doküman yükle</div>
+    <input id="docId" value="ornek-dokuman.md" aria-label="Doküman adı">
+    <textarea id="docText" rows="4" aria-label="Doküman metni" placeholder="Doküman metnini buraya yapıştır"></textarea>
+    <div class="row"><button id="upload" type="button">Yükle</button><span class="stats" id="uploadStatus"></span></div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+let controller = null;
+
+document.querySelectorAll(".examples button").forEach(b => b.addEventListener("click", () => { $("#question").value = b.textContent; ask(); }));
+$("#ask").addEventListener("click", ask);
+$("#stop").addEventListener("click", () => controller?.abort());
+$("#question").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+
+async function ask() {
+  const question = $("#question").value.trim();
+  if (!question) return;
+  controller?.abort();
+  controller = new AbortController();
+  $("#answer").textContent = ""; $("#answer").classList.remove("empty");
+  $("#sources").innerHTML = ""; $("#log").textContent = ""; $("#cacheInfo").textContent = ""; $("#stats").textContent = "Aranıyor…";
+  $("#ask").disabled = true; $("#stop").disabled = false;
+  const start = performance.now(); let firstToken = null, tokens = 0;
+
+  try {
+    const res = await fetch("/chat/stream", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }), signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Sunucu ${res.status} döndürdü.`);
+
+    const reader = res.body.getReader(), decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let end;
+      while ((end = buffer.indexOf("\n\n")) >= 0) {
+        const raw = buffer.slice(0, end); buffer = buffer.slice(end + 2);
+        $("#log").textContent += raw + "\n\n";
+        const event = /^event: (.*)$/m.exec(raw)?.[1], data = JSON.parse(/^data: (.*)$/m.exec(raw)?.[1] ?? "null");
+        if (event === "cache") {
+          $("#cacheInfo").textContent = data.Hit
+            ? `Cache'ten geldi: "${data.Question}" sorusuna ${data.Similarity.toFixed(3)} benzer. LLM çağrılmadı.`
+            : "Cache'te yok, cevap LLM'den üretiliyor.";
+        } else if (event === "sources") {
+          $("#sources").innerHTML = data.map(s => `<span class="chip">${s.Label} · ${s.DocumentId} · parça ${s.ChunkIndex} · ${s.Similarity.toFixed(3)}</span>`).join("");
+          $("#stats").textContent = "Model yazıyor…";
+        } else if (event === "token") {
+          firstToken ??= performance.now(); tokens++;
+          $("#answer").textContent += data;
+        } else if (event === "done") {
+          $("#stats").textContent = `İlk kelime ${((firstToken - start) / 1000).toFixed(1)} sn · toplam ${((performance.now() - start) / 1000).toFixed(1)} sn · ${tokens} parça`;
+        }
+      }
+    }
+  } catch (err) {
+    $("#stats").textContent = err.name === "AbortError" ? "Durduruldu. Sunucu da üretimi kesti." : `Hata: ${err.message}`;
+  } finally {
+    $("#ask").disabled = false; $("#stop").disabled = true;
+  }
+}
+
+$("#upload").addEventListener("click", async () => {
+  const documentId = $("#docId").value.trim(), text = $("#docText").value.trim();
+  if (!documentId || !text) { $("#uploadStatus").textContent = "Doküman adı ve metni gerekli."; return; }
+  $("#uploadStatus").textContent = "Yükleniyor…";
+  const res = await fetch("/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ documentId, text }) });
+  const body = await res.json();
+  $("#uploadStatus").textContent = res.ok ? `${body.documentId}: kuyruğa alındı (${res.status}). Worker birkaç saniye içinde işleyecek.` : `Hata: ${body.error}`;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anlam Haritası</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: survey-map notebook. One reading column, wide instrument panels, condensed map labels. */
+:root {
+  --bg: #F1F3F6;
+  --surface: #FFFFFF;
+  --ink: #16202C;
+  --muted: #5A6676;
+  --line: #D5DBE2;
+  --grid: #E3E8ED;
+  --accent: #2457C5;
+  --accent-soft: rgba(36, 87, 197, .10);
+  --pin: #C5412C;
+  --pin-soft: rgba(197, 65, 44, .12);
+  --good: #1D8556;
+  --warn: #A86B12;
+  --f-display: "Archivo", system-ui, sans-serif;
+  --f-body: "Archivo", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E141B; --surface: #151D27; --ink: #E3E9F0; --muted: #94A2B2; --line: #283543; --grid: #1B2531;
+    --accent: #7FA8FF; --accent-soft: rgba(127, 168, 255, .15); --pin: #FF8068; --pin-soft: rgba(255, 128, 104, .16);
+    --good: #4FC48C; --warn: #E2A64C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E141B; --surface: #151D27; --ink: #E3E9F0; --muted: #94A2B2; --line: #283543; --grid: #1B2531;
+  --accent: #7FA8FF; --accent-soft: rgba(127, 168, 255, .15); --pin: #FF8068; --pin-soft: rgba(255, 128, 104, .16);
+  --good: #4FC48C; --warn: #E2A64C; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 17px; line-height: 1.6; font-variation-settings: "wdth" 100;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; padding-block: 0 96px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; line-height: 1.1; margin: 0; }
+h1 { font-size: clamp(44px, 8vw, 84px); font-weight: 820; font-variation-settings: "wdth" 118; letter-spacing: -.02em; }
+h2 { font-size: clamp(28px, 4.2vw, 40px); font-weight: 780; font-variation-settings: "wdth" 112; letter-spacing: -.01em; }
+h3 { font-size: 20px; font-weight: 700; font-variation-settings: "wdth" 104; }
+p { margin: 0; }
+code, .mono { font-family: var(--f-mono); font-size: .86em; }
+.label {
+  font-family: var(--f-body); font-variation-settings: "wdth" 72; font-weight: 650; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .12em; color: var(--muted);
+}
+a { color: var(--accent); }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* hero */
+.hero {
+  padding-block: 64px 40px; display: grid; gap: 20px;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px; background-position: -1px -1px;
+  margin: 0 -20px; padding-inline: 20px; border-bottom: 1px solid var(--line);
+}
+.hero .coords { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.hero p.lead { font-size: 20px; max-width: 60ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 15px; }
+.legend span { display: inline-flex; align-items: baseline; gap: 6px; }
+.legend b { font-weight: 650; }
+
+section { padding-block: 64px 8px; display: grid; gap: 22px; }
+.sec-head { display: grid; gap: 10px; }
+.step-no { font-family: var(--f-mono); font-size: 14px; color: var(--accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; min-width: 0; }
+.scroll-x { overflow-x: auto; }
+.tag {
+  display: inline-block; font-family: var(--f-body); font-variation-settings: "wdth" 72; font-weight: 700;
+  font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+}
+.tag.real { background: var(--accent-soft); color: var(--accent); }
+.tag.demo { background: var(--pin-soft); color: var(--pin); }
+.note { font-size: 15px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+.grid2 > * { min-width: 0; }
+
+/* pipeline */
+#pipe svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.node rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.node text { fill: var(--ink); font-family: var(--f-body); font-size: 13px; }
+.node .sub { fill: var(--muted); font-size: 11px; }
+.node { cursor: pointer; }
+.node:hover rect, .node.on rect { stroke: var(--accent); stroke-width: 2; fill: var(--accent-soft); }
+.edge { stroke: var(--muted); stroke-width: 1.25; fill: none; }
+.lane-label { fill: var(--muted); font-family: var(--f-body); font-size: 11.5px; font-weight: 650; letter-spacing: .1em; }
+#pipeDetail h3 { margin-bottom: 6px; }
+
+/* stepper */
+.stepper-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.stepper-nav button {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 4px;
+  padding: 6px 10px; font-size: 14px;
+}
+.stepper-nav button[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.stage { display: grid; gap: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-family: var(--f-mono); font-size: 14px; padding: 4px 8px; border-radius: 4px;
+  background: var(--bg); border: 1px solid var(--line); display: inline-grid; gap: 2px; text-align: center;
+}
+.chip small { color: var(--muted); font-size: 11px; }
+.chip.pre { border-color: var(--accent); color: var(--accent); }
+.rowvec { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; font-family: var(--f-mono); font-size: 13px; }
+.cells { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; max-width: 360px; }
+.cells i { height: 16px; border-radius: 2px; display: block; }
+.stage-nav { display: flex; gap: 8px; }
+.btn {
+  border: 1px solid var(--ink); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 4px; font-weight: 600;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:disabled { opacity: .35; cursor: default; }
+
+/* barcode */
+#barcode { display: grid; grid-template-columns: repeat(48, 1fr); gap: 1px; }
+#barcode i { aspect-ratio: 1; display: block; border-radius: 1px; }
+.bar-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+select { font: inherit; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 100%; }
+#barReadout { font-family: var(--f-mono); font-size: 14px; min-height: 1.6em; }
+.scale { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.scale .ramp { width: 160px; height: 10px; border-radius: 2px; }
+
+/* cosine toy */
+#cosSvg { width: 100%; max-width: 360px; height: auto; display: block; }
+.big-num { font-family: var(--f-mono); font-size: 40px; font-weight: 600; line-height: 1; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+.formula { font-family: var(--f-mono); font-size: 14px; background: var(--bg); padding: 12px; border-radius: 4px; overflow-x: auto; white-space: nowrap; }
+
+/* map */
+.map-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .map-layout { grid-template-columns: 1fr; } }
+#map { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+#map .gridline { stroke: var(--grid); stroke-width: 1; }
+.qlist { display: grid; gap: 6px; }
+.qbtn {
+  text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 4px;
+  padding: 8px 10px; font-size: 15px; display: grid; grid-template-columns: 30px 1fr; gap: 6px; align-items: baseline;
+}
+.qbtn .mono { color: var(--pin); font-weight: 600; }
+.qbtn[aria-pressed="true"] { border-color: var(--pin); background: var(--pin-soft); }
+.rank { display: grid; gap: 8px; }
+.rank-row { display: grid; grid-template-columns: 34px 1fr 64px; gap: 10px; align-items: center; font-size: 14px; }
+.rank-row .bar { height: 10px; background: var(--grid); border-radius: 2px; position: relative; overflow: hidden; }
+.rank-row .bar span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; }
+.rank-row.top .bar span { background: var(--pin); }
+.rank-row .val { font-family: var(--f-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.verdict { border-left: 3px solid var(--line); padding: 4px 0 4px 12px; font-size: 15px; }
+.verdict.ok { border-color: var(--good); }
+.verdict.bad { border-color: var(--pin); }
+.verdict.warn { border-color: var(--warn); }
+.chunk-text { font-size: 14px; color: var(--muted); white-space: pre-wrap; }
+
+/* pgvector */
+pre { margin: 0; font-family: var(--f-mono); font-size: 14px; line-height: 1.55; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; overflow-x: auto; }
+pre .k { color: var(--accent); font-weight: 600; }
+pre .c { color: var(--muted); }
+pre .hl { background: var(--pin-soft); color: var(--pin); border-radius: 3px; padding: 0 2px; cursor: help; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-variation-settings: "wdth" 80; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tr.top td { color: var(--pin); font-weight: 600; }
+
+#hnsw { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; cursor: crosshair; touch-action: manipulation; }
+.layer-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.layer-pills span { font-family: var(--f-mono); font-size: 13px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); }
+.layer-pills span.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 24px; font-family: var(--f-mono); font-size: 14px; }
+
+/* sql walk */
+.walk { display: grid; gap: 0; counter-reset: w; }
+.walk li { list-style: none; display: grid; grid-template-columns: 34px 1fr; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.walk li::before { counter-increment: w; content: counter(w); font-family: var(--f-mono); color: var(--accent); font-weight: 600; }
+.walk ol { margin: 0; padding: 0; }
+
+/* quiz */
+.quiz { display: grid; gap: 18px; }
+.q { display: grid; gap: 8px; }
+.opts { display: grid; gap: 6px; }
+.opt { text-align: left; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 8px 12px; border-radius: 4px; font-size: 15px; }
+.opt.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 12%, var(--surface)); }
+.opt.wrong { border-color: var(--pin); background: var(--pin-soft); }
+.why { font-size: 15px; color: var(--muted); }
+blockquote { margin: 0; padding: 14px 18px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 6px 6px 0; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="coords">DocuMind · ders notu · Adım 4 · nomic-embed-text · pgvector 0.8.7</div>
+  <h1>Anlam Haritası</h1>
+  <p class="lead">Bir cümle nasıl 768 sayıya dönüşüyor, bu sayılar PostgreSQL'de nasıl saklanıyor ve bir soru gelince en yakın parça nasıl bulunuyor. Sayfadaki bütün skorlar bizim veritabanımızdaki gerçek vektörlerden hesaplandı.</p>
+  <div class="legend" aria-label="Kütüphane benzetmesi">
+    <span><b>Haritacı</b> = embedding modeli</span>
+    <span><b>İğne</b> = vektör</span>
+    <span><b>Dolap</b> = PostgreSQL + pgvector</span>
+    <span><b>Mahalle tabelaları</b> = HNSW indeksi</span>
+  </div>
+  <div class="legend"><span><span class="tag real">Gerçek veri</span> bizim sistemden ölçüldü</span><span><span class="tag demo">Temsili</span> kavramı göstermek için çizildi</span></div>
+</header>
+
+<section id="s1">
+  <div class="sec-head">
+    <div class="step-no">01 / Büyük resim</div>
+    <h2>İki yol, tek harita</h2>
+    <p class="prose">Hazırlık yolu dokümanı bir kez haritaya işler. Sorgu yolu her soruda çalışır. İkisi aynı haritacıyı (aynı modeli) kullanmak zorunda, yoksa iğneler aynı haritaya düşmez. Bir kutuya tıkla, ne olduğunu gör.</p>
+  </div>
+  <div class="panel scroll-x" id="pipe"><svg viewBox="0 0 760 250" role="img" aria-label="Hazırlık ve sorgu akışı"></svg></div>
+  <div class="panel" id="pipeDetail" aria-live="polite"></div>
+</section>
+
+<section id="s2">
+  <div class="sec-head">
+    <div class="step-no">02 / Haritacı</div>
+    <h2>Bir cümle 768 sayıya nasıl dönüşüyor</h2>
+    <p class="prose"><b>nomic-embed-text</b>, Nomic AI'ın açık kaynak embedding modeli. Ollama'daki bilgisi: mimari <code>nomic-bert</code> (BERT ailesinden bir transformer kodlayıcı), <b>137 milyon</b> parametre, <b>768</b> boyutlu çıktı, F16 hassasiyet, Apache 2.0 lisansı. Sohbet modeli gibi metin yazmaz, sadece metni okuyup tek bir vektör verir. Aşağıdaki adımlar o tek çağrının içinde olanlar.</p>
+  </div>
+  <div class="panel stage">
+    <div class="stepper-nav" id="stepNav" role="tablist" aria-label="Embedding adımları"></div>
+    <div id="stepBody" aria-live="polite"></div>
+    <div class="stage-nav"><button class="btn ghost" id="prevStep" type="button">← Önceki</button><button class="btn" id="nextStep" type="button">Sonraki →</button></div>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Model bunu nasıl öğrendi?</h3>
+      <p class="note" style="margin-top:8px">Karşılaştırmalı (contrastive) eğitim: milyonlarca eşleşen çift (soru ve cevabı, başlık ve metni) gösterilir. Eşleşen çiftlerin vektörleri birbirine çekilir, alakasız olanlar itilir. Sonunda "anlamca yakın" ile "vektörce yakın" aynı şey olur.</p>
+    </div>
+    <div class="panel">
+      <h3>Önekler neden var?</h3>
+      <p class="note" style="margin-top:8px">Model eğitimde <code>search_document:</code> ve <code>search_query:</code> öneklerini görerek öğrendi. Kısa bir soru ile uzun bir paragrafı aynı yere iğnelemesi için hangisinin hangisi olduğunu bilmesi gerekiyor. Embedder sınıfımız bu önekleri otomatik ekliyor.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <div class="sec-head">
+    <div class="step-no">03 / İğnenin kendisi</div>
+    <h2>Bir vektöre yakından bak</h2>
+    <p class="prose">Her kare, 768 sayıdan biri. Tek bir sayının anlamı yok, anlamı 768'inin birlikte oluşturduğu desen taşıyor. Benzer metinlerin desenleri benzer. Farklı parçaları ve soruları seçip desenleri karşılaştır.</p>
+  </div>
+  <div class="panel stage">
+    <div class="bar-controls">
+      <label class="label" for="barSel">Vektör</label>
+      <select id="barSel"></select>
+      <span class="tag real">Gerçek veri</span>
+    </div>
+    <div id="barcode" aria-label="768 boyutlu vektör ısı haritası"></div>
+    <div class="bar-controls" style="justify-content:space-between">
+      <div id="barReadout">Bir karenin üstüne gel: boyut numarası ve değeri burada görünür.</div>
+      <div class="scale"><span>−0.15</span><span class="ramp" id="ramp"></span><span>+0.15</span></div>
+    </div>
+    <p class="note" id="normNote"></p>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="sec-head">
+    <div class="step-no">04 / Yakınlık</div>
+    <h2>Kosinüs benzerliği</h2>
+    <p class="prose">İki iğne ne kadar aynı yönü gösteriyorsa o kadar benzer. Ölçü, aralarındaki açının kosinüsü: aynı yön 1, dik açı 0, zıt yön −1. Aşağıda 2 boyutta gösteriyorum, gerçekte aynı hesap 768 boyutta yapılıyor.</p>
+  </div>
+  <div class="grid2">
+    <div class="panel stage">
+      <svg id="cosSvg" viewBox="0 0 300 220" role="img" aria-label="İki vektör ve aralarındaki açı"></svg>
+      <label class="label" for="angle">Açı: <span id="angleVal">40</span>°</label>
+      <input id="angle" type="range" min="0" max="180" value="40">
+      <span class="tag demo">Temsili, 2 boyut</span>
+    </div>
+    <div class="panel stage">
+      <div><div class="label">Kosinüs benzerliği</div><div class="big-num" id="cosVal">0.766</div></div>
+      <div><div class="label">pgvector <code>&lt;=&gt;</code> mesafesi = 1 − kosinüs</div><div class="big-num" id="distVal" style="color:var(--muted)">0.234</div></div>
+      <p class="note">Bizim vektörlerin uzunluğu tam 1 (normalize edilmiş). Bu durumda kosinüs, iki vektörün karşılıklı sayılarının çarpılıp toplanmasına (dot product) eşit oluyor.</p>
+    </div>
+  </div>
+  <div class="panel stage">
+    <div class="label">Gerçek hesap: "Babalara kaç gün izin veriliyor?" × Parça 3 <span class="tag real">Gerçek veri</span></div>
+    <div class="formula" id="dotFormula"></div>
+    <p class="note">pgvector bu toplamı C dilinde, 768 çarpma ve 767 toplamayla saniyenin milyonda biri kadar sürede yapıyor. Sonuç, Adım 4'teki arama çıktısında gördüğün <b>0,781</b> ile aynı.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="sec-head">
+    <div class="step-no">05 / Haritamız</div>
+    <h2>Bizim 4 parça ve 7 soru, haritada</h2>
+    <p class="prose">Bir soru seç. Çizgiler soruyu dört parçaya bağlıyor, kalın çizgi daha yüksek benzerlik demek. Sağdaki liste, pgvector'ın <code>ORDER BY embedding &lt;=&gt; soru</code> ile döndüreceği sıra.</p>
+  </div>
+  <div class="map-layout">
+    <div class="stage">
+      <svg id="map" viewBox="0 0 520 400" role="img" aria-label="Parçaların ve soruların 2 boyutlu haritası"></svg>
+      <p class="note" id="mapNote"></p>
+    </div>
+    <div class="stage">
+      <div class="qlist" id="qlist" role="group" aria-label="Soru seç"></div>
+      <div class="panel stage">
+        <div class="label">Sıralama (top-k) <span class="tag real">Gerçek veri</span></div>
+        <div class="rank" id="rank"></div>
+        <div class="verdict" id="verdict"></div>
+      </div>
+    </div>
+  </div>
+  <details class="panel">
+    <summary class="label" style="cursor:pointer">Parçaların tam metni</summary>
+    <div class="grid2" id="chunkTexts" style="margin-top:14px"></div>
+  </details>
+</section>
+
+<section id="s6">
+  <div class="sec-head">
+    <div class="step-no">06 / Dolap</div>
+    <h2>pgvector: PostgreSQL'e eklenen vektör yeteneği</h2>
+    <p class="prose">pgvector bir PostgreSQL eklentisi (extension). Veritabanına üç şey ekliyor: <b>vector</b> adında yeni bir kolon tipi, vektörler arası <b>mesafe operatörleri</b> ve aramayı hızlandıran <b>indeks türleri</b> (HNSW, IVFFlat). Geri kalan her şey sıradan PostgreSQL: tablo, satır, transaction, WHERE filtresi.</p>
+  </div>
+  <pre><span class="k">CREATE TABLE</span> chunks (
+  id          BIGSERIAL PRIMARY KEY,
+  document_id TEXT NOT NULL,          <span class="c">-- metadata: hangi dokümandan</span>
+  chunk_index INT  NOT NULL,          <span class="c">-- kaçıncı parça</span>
+  content     TEXT NOT NULL,          <span class="c">-- parçanın metni (LLM'e bu gidecek)</span>
+  embedding   <span class="hl" title="768 adet 4 baytlık sayı + 8 bayt başlık = 3.080 bayt">VECTOR(768)</span> NOT NULL
+);
+<span class="k">CREATE INDEX</span> chunks_embedding_hnsw
+  ON chunks USING <span class="hl" title="Katmanlı graf indeksi, aşağıda canlı demo var">hnsw</span> (embedding <span class="hl" title="Bu indeks kosinüs mesafesiyle çalışsın">vector_cosine_ops</span>);</pre>
+  <div class="grid2">
+    <div class="panel">
+      <div class="label">Bir vektör ne kadar yer kaplar?</div>
+      <p style="margin-top:8px"><code>4 bayt × 768 + 8 bayt = <b>3.080 bayt</b></code> ≈ 3 KB. Bir milyon parça yaklaşık 3 GB vektör demek. Model boyutu seçimi depolama maliyetini de belirliyor.</p>
+    </div>
+    <div class="panel scroll-x">
+      <div class="label">Mesafe operatörleri</div>
+      <table style="margin-top:6px">
+        <thead><tr><th>Operatör</th><th>Ölçü</th></tr></thead>
+        <tbody>
+          <tr><td><code>&lt;=&gt;</code></td><td>Kosinüs mesafesi (1 − kosinüs). <b>Bizimki.</b></td></tr>
+          <tr><td><code>&lt;-&gt;</code></td><td>Öklid (L2) mesafesi, düz cetvelle ölçmek gibi</td></tr>
+          <tr><td><code>&lt;#&gt;</code></td><td>Negatif iç çarpım (dot product)</td></tr>
+          <tr><td><code>&lt;+&gt;</code></td><td>L1 (Manhattan) mesafesi</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sec-head" style="margin-top:20px">
+    <h3>Tam arama mı, HNSW mi?</h3>
+    <p class="prose">İndeks yoksa pgvector soruyu dolaptaki <b>her</b> vektörle tek tek karşılaştırır (tam arama). 4 parçada sorun yok, 10 milyon parçada çok yavaş. HNSW noktaları katmanlı bir ağ olarak bağlar: üst katmanda az nokta ve uzun atlamalar, alt katmanda hepsi ve kısa adımlar. Arama tepeden başlar, her katmanda soruya doğru açgözlü (greedy) adımlar atar, sonra bir alt katmana iner. Haritaya tıklayarak bir soru noktası koy ve <b>Ara</b>'ya bas.</p>
+  </div>
+  <div class="panel stage">
+    <div class="bar-controls" style="justify-content:space-between">
+      <div class="layer-pills" id="layerPills"><span data-l="2">Katman 2 · şehirler</span><span data-l="1">Katman 1 · mahalleler</span><span data-l="0">Katman 0 · sokaklar</span></div>
+      <div style="display:flex;gap:8px"><button class="btn" id="hnswRun" type="button">Ara</button><button class="btn ghost" id="hnswNew" type="button">Yeni harita</button></div>
+    </div>
+    <svg id="hnsw" viewBox="0 0 640 380" role="img" aria-label="HNSW arama demosu"></svg>
+    <div class="stats" id="hnswStats"></div>
+    <p class="note"><span class="tag demo">Temsili</span> 80 noktalık oyuncak bir HNSW. Gerçek pgvector varsayılanları: her noktanın en fazla <code>m = 16</code> komşusu, kurulumda <code>ef_construction = 64</code> aday, aramada <code>hnsw.ef_search = 40</code> aday. HNSW "yaklaşık" bir aramadır (ANN): bazen en yakını kaçırabilir, karşılığında çok daha az noktaya bakar.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <div class="sec-head">
+    <div class="step-no">07 / Arama</div>
+    <h2>Bir sorunun yolculuğu, satır satır</h2>
+    <p class="prose" id="walkIntro"></p>
+  </div>
+  <pre><span class="k">SELECT</span> document_id, chunk_index, content,
+       1 - (embedding <span class="hl" title="Kosinüs mesafesi">&lt;=&gt;</span> $1) <span class="k">AS</span> similarity
+<span class="k">FROM</span> chunks
+<span class="k">ORDER BY</span> embedding <span class="hl" title="Mesafeye göre küçükten büyüğe: en yakın önce">&lt;=&gt;</span> $1
+<span class="k">LIMIT</span> <span class="hl" title="top-k">$2</span>;</pre>
+  <div class="panel"><ol class="walk" id="walk"></ol></div>
+  <div class="panel scroll-x">
+    <div class="label">Bu sorunun dolaptan dönen sonucu <span class="tag real">Gerçek veri</span></div>
+    <table style="margin-top:6px"><thead><tr><th>Sıra</th><th>Parça</th><th class="num">&lt;=&gt; mesafe</th><th class="num">benzerlik</th><th>Metnin başı</th></tr></thead><tbody id="sqlRows"></tbody></table>
+  </div>
+</section>
+
+<section id="s8">
+  <div class="sec-head">
+    <div class="step-no">08 / Görüşme</div>
+    <h2>Kendini dene</h2>
+  </div>
+  <blockquote>"Her chunk'ı nomic-embed-text ile 768 boyutlu, normalize edilmiş bir vektöre çeviriyorum ve PostgreSQL'de pgvector'ın <code>vector(768)</code> kolonunda saklıyorum. Soru da aynı modelle, <code>search_query</code> önekiyle vektöre çevriliyor. Arama, kosinüs mesafesi operatörü <code>&lt;=&gt;</code> ile top-k sıralaması. Büyük veride tam arama yerine HNSW indeksi kullanıyorum: katmanlı bir graf üzerinde yaklaşık en yakın komşu araması. Ölçümlerimde Türkçe sorularda skorların birbirine çok yakın çıktığını ve alakasız sorulara da 0,69 gibi skorlar döndüğünü gördüm. Bu yüzden çok dilli bir embedding modeli ve bir benzerlik eşiği planlıyorum."</blockquote>
+  <div class="quiz" id="quiz"></div>
+</section>
+
+</div>
+
+<script>
+const D = {"chunks": [{"index": 0, "text": "# Örnek A.Ş. İzin Politikası\nYıllık izin: Bir yılını dolduran her çalışan yılda 14 iş günü ücretli yıllık izin hakkı kazanır. Beş yılını dolduran çalışanlar için bu süre 20 iş günüdür. Kullanılmayan izinler bir sonraki yıla en fazla 5 gün olarak devredilebilir.", "vec": [-0.0116, 0.0201, -0.1306, -0.045, 0.0784, -0.0303, -0.0229, -0.0253, -0.026, 0.0294, -0.0753, 0.029, 0.0423, 0.0124, 0.0298, -0.0651, 0.0058, -0.0283, -0.0603, 0.0237, -0.0433, 0.0063, -0.0278, -0.0285, 0.0929, 0.029, 0.0146, -0.0217, -0.0278, -0.0298, -0.0139, -0.0717, -0.0219, -0.0155, 0.0355, -0.1011, 0.0869, 0.0018, 0.11, -0.0183, 0.0434, -0.0363, 0.0036, -0.0414, 0.042, 0.0272, 0.0334, 0.0437, 0.04, 0.0005, -0.0446, -0.0134, 0.0133, -0.0467, -0.0264, 0.0144, -0.0354, 0.0073, 0.0182, -0.0036, 0.0678, 0.085, -0.0776, 0.0337, 0.0434, -0.0512, -0.0358, 0.0722, 0.0045, -0.0505, 0.017, -0.0265, 0.0625, -0.0111, -0.0004, 0.0543, -0.0156, -0.0665, 0.0276, 0.0399, -0.003, -0.0131, 0.107, 0.0085, 0.0415, 0.0155, 0.0124, 0.0098, -0.0078, 0.0807, 0.0005, -0.0067, 0.0288, 0.0567, -0.0552, -0.0143, -0.0212, 0.0593, -0.0092, -0.0435, -0.0578, -0.0291, -0.0064, -0.0488, 0.0534, 0.0216, 0.0296, 0.0029, 0.0109, -0.0393, -0.081, 0.0151, -0.0098, 0.0121, -0.0156, 0.001, 0.0234, -0.0369, 0.0785, 0.0097, 0.0037, -0.0274, -0.0284, 0.0099, -0.0107, 0.0213, -0.0755, 0.0329, 0.0243, -0.0265, 0.0403, -0.005, 0.0265, -0.0252, 0.0048, 0.0584, 0.002, -0.0155, 0.0106, 0.0182, 0.0456, 0.012, 0.0116, -0.0258, -0.0121, -0.0186, 0.0424, -0.0668, -0.0363, -0.0093, 0.0444, 0.0241, -0.0159, 0.0552, 0.0111, -0.068, -0.0216, -0.0076, 0.0141, 0.0171, -0.0062, 0.0412, -0.02, 0.0603, -0.0459, -0.0374, -0.0272, 0.0202, 0.0049, 0.0299, -0.0488, -0.0183, -0.044, 0.0046, 0.0654, -0.0388, -0.0154, -0.0227, 0.0423, -0.0492, 0.0097, -0.0069, 0.0498, 0.0484, -0.0484, -0.0297, -0.0014, -0.0174, 0.0015, -0.0111, -0.0346, 0.0296, -0.0107, -0.0501, -0.033, 0.0218, 0.0542, -0.0035, 0.0172, -0.046, -0.0186, -0.0063, -0.0191, 0.0352, -0.0739, 0.0148, -0.0508, 0.0518, -0.0025, 0.0283, 0.0799, -0.0095, 0.0263, 0.0334, 0.0587, -0.0309, -0.0343, -0.0201, 0.0015, 0.0196, 0.0114, 0.0334, -0.0052, -0.0126, 0.0137, 0.0142, -0.0124, 0.0265, 0.0251, 0.0302, -0.0171, -0.04, 0.0841, -0.0036, -0.0044, 0.0036, 0.0248, 0.0615, -0.0269, -0.0083, -0.0134, -0.0125, -0.0029, -0.0065, -0.0421, 0.0387, 0.0076, -0.0631, 0.0332, 0.0375, 0.0179, 0.0149, 0.0458, 0.0698, -0.0099, -0.0149, -0.0372, -0.0051, 0.0225, -0.0415, 0.0029, -0.0476, 0.0069, -0.0338, 0.0071, -0.009, -0.02, -0.0028, 0.0161, 0.0079, 0.0375, 0.0445, 0.0049, 0.0112, -0.0213, -0.0001, 0.0446, -0.0276, -0.0266, 0.0661, -0.0044, -0.0009, -0.0325, -0.0399, 0.0163, 0.0232, 0.0311, -0.0006, 0.0552, 0.0042, -0.0239, 0.0331, 0.0258, 0.0451, 0.0397, -0.0028, 0.1008, -0.0467, -0.0083, 0.0277, 0.0433, 0.0049, -0.0007, -0.0248, 0.0707, -0.0547, 0.0194, 0.0532, 0.0386, -0.033, -0.064, 0.0222, -0.016, -0.0038, -0.0677, 0.0809, -0.0243, 0.018, 0.0008, 0.0112, -0.0052, -0.0226, 0.0008, -0.0359, 0.0077, 0.0288, -0.0351, 0.0438, 0.0092, -0.0317, 0.0006, 0.0325, -0.0077, -0.0368, -0.0219, 0.0299, -0.0509, 0.0254, -0.0134, 0.0977, 0.0237, 0.0227, -0.0372, -0.0895, 0.0144, -0.0362, -0.0224, -0.0299, -0.005, 0.0638, -0.0442, 0.0348, -0.0434, -0.0019, 0.0456, -0.0106, 0.0079, 0.0902, -0.0256, 0.0355, 0.0421, -0.0235, 0.0102, -0.0195, 0.0105, -0.0065, -0.0138, 0.002, 0.0127, -0.0071, 0.0034, -0.0069, 0.0026, 0.0229, -0.0164, 0.0181, -0.0179, 0.0339, -0.0556, 0.0069, -0.0124, -0.0228, 0.0093, 0.0177, -0.0064, -0.0275, -0.0284, -0.0407, -0.015, 0.0181, 0.0415, -0.0309, -0.0402, 0.0259, 0.006, -0.0468, 0.017, 0.0117, 0.0364, 0.0337, -0.0046, -0.0552, 0.0461, -0.0341, 0.0078, 0.0615, 0.003, -0.0581, 0.016, 0.0126, -0.0167, 0.0521, -0.0174, 0.0072, -0.0345, 0.0092, 0.0082, -0.0065, -0.0224, 0.0021, 0.0411, 0.0628, -0.0089, 0.0004, -0.0075, -0.0154, 0.0321, 0.0575, -0.0097, -0.0609, 0.0122, 0.002, 0.0406, -0.0109, -0.04, -0.0246, -0.0004, 0.0188, -0.0398, 0.0235, -0.0106, -0.0463, -0.0145, -0.0369, 0.0029, 0.0467, 0.0278, -0.0471, -0.0622, 0.035, 0.0415, 0.0601, -0.0088, 0.0109, 0.0368, -0.0049, -0.0268, -0.0012, -0.0114, 0.0422, 0.0631, -0.0402, 0.0365, 0.0001, -0.0266, -0.0493, 0.0058, -0.0375, 0.017, 0.0349, -0.0428, 0.0008, 0.0527, -0.0201, -0.0704, -0.0056, 0.0191, -0.0072, 0.0018, 0.0652, -0.0071, -0.0868, -0.0721, -0.0528, 0.0029, 0.0232, 0.0357, -0.0079, 0.0386, -0.0796, 0.0198, 0.0458, 0.0196, 0.008, -0.0061, -0.0304, 0.0119, -0.0366, 0.1104, 0.0181, 0.0234, 0.0029, -0.018, -0.0012, 0.0477, -0.0761, -0.0238, -0.0496, -0.0774, 0.0205, -0.0273, 0.0103, 0.0777, -0.0101, -0.0485, -0.0206, 0.0431, 0.0062, 0.0002, -0.0248, 0.0234, -0.0999, 0.0093, -0.0367, -0.0123, 0.0362, -0.031, -0.0479, 0.0233, -0.0224, 0.0256, -0.006, -0.0107, -0.0089, -0.0094, 0.0166, -0.0272, 0.0306, 0.0136, 0.0614, 0.0133, -0.0215, 0.0159, 0.0088, 0.0263, 0.0001, -0.0116, -0.0208, -0.0107, -0.0391, 0.0433, -0.0379, -0.0238, -0.025, 0.0218, -0.0651, 0.0417, -0.0371, -0.0252, 0.0149, 0.033, 0.0027, 0.0539, -0.0557, -0.0205, -0.0155, 0.0021, -0.0335, 0.0247, 0.0193, 0.0322, -0.0018, -0.0143, 0.0178, -0.018, 0.0271, 0.0066, -0.0152, -0.0588, -0.0176, -0.005, -0.0439, 0.0408, 0.0479, 0.0038, 0.0169, -0.0108, -0.0165, 0.0136, 0.0272, 0.0052, 0.0036, -0.0182, -0.0061, 0.0109, 0.0095, 0.0343, -0.003, -0.0204, -0.0116, -0.002, -0.0056, -0.0139, 0.018, -0.0305, 0.0515, -0.0211, 0.0023, -0.0023, -0.0793, -0.0105, -0.0214, 0.022, -0.0107, -0.0062, 0.0132, 0.0648, -0.0503, -0.0421, -0.027, 0.0217, -0.0551, 0.045, 0.0038, 0.0326, 0.0286, -0.0571, -0.0265, 0.003, 0.0402, -0.0401, 0.0209, -0.007, -0.0547, -0.066, -0.0227, 0.0061, 0.0847, -0.007, 0.073, 0.0157, -0.0495, 0.0062, 0.0567, 0.0576, 0.0015, 0.0256, 0.0421, -0.0048, -0.0312, 0.0473, 0.0187, 0.0277, 0.0293, 0.0143, -0.0075, 0.0458, -0.0468, -0.0563, -0.0541, -0.0123, 0.0104, -0.0271, 0.0041, -0.0186, -0.0352, 0.0004, 0.0197, -0.0432, -0.041, -0.0099, -0.0078, 0.005, 0.0021, 0.0245, 0.0492, 0.0426, 0.0285, 0.0395, -0.0489, -0.0147, 0.015, 0.0136, -0.0022, -0.0199, -0.0239, 0.0526, -0.0697, 0.0449, -0.0323, 0.0016, -0.0862, -0.0067, -0.0365, 0.0181, -0.0206, -0.0436, 0.012, -0.0644, 0.0158, 0.0243, 0.0095, 0.0213, 0.0104, -0.0379, -0.0069, -0.013, 0.0102, 0.0221, 0.0101, 0.0158, -0.0034, -0.0411, 0.1004, 0.0061, 0.0319, -0.0235, -0.0586, -0.0091, -0.0211, 0.0435, -0.0283, 0.0051, -0.0379, -0.0286, 0.0201, -0.0112, -0.0114, 0.0404, 0.0033, 0.0275, 0.0316, -0.0504, 0.0402, -0.0036, 0.0026, -0.039, 0.043, -0.0387, -0.0008, -0.0158, 0.0156, 0.0013, 0.0531, 0.0226, -0.0271, -0.0573, 0.0651, 0.0384, -0.0208, 0.0077, 0.0374, -0.0169, 0.0174, -0.0211, -0.008, -0.0328, 0.0134, 0.1373, 0.0481, 0.0323, -0.03, 0.0052, -0.0171, -0.0077, -0.0293, -0.0918, -0.0629], "xy": [0.0716, 0.2206]}, {"index": 1, "text": "Kullanılmayan izinler bir sonraki yıla en fazla 5 gün olarak devredilebilir.\nİzin talebi: İzin talepleri en az iki hafta önceden İK portalı üzerinden yöneticinin onayına gönderilir. Acil durumlarda yönetici onayı ile daha kısa sürede izin kullanılabilir.", "vec": [-0.0186, 0.0411, -0.1538, -0.0, 0.0351, -0.0589, -0.0154, -0.0531, -0.0667, 0.0211, -0.0553, 0.0007, 0.0727, 0.027, -0.018, -0.0599, 0.0348, -0.0031, -0.021, 0.0302, -0.0466, 0.0077, -0.0539, -0.02, 0.0796, -0.0051, 0.0518, 0.0159, -0.0837, 0.0067, 0.0133, -0.0445, -0.0369, -0.0243, 0.0074, -0.1043, 0.0551, 0.014, 0.0559, -0.0048, 0.0234, -0.0264, -0.003, -0.0182, 0.0679, 0.0366, 0.0427, 0.0544, 0.0497, -0.022, -0.0292, -0.0426, 0.0142, -0.0559, 0.0105, 0.0119, -0.0191, -0.0086, 0.0227, 0.0145, 0.028, 0.0859, -0.0473, 0.0268, 0.0442, -0.0331, -0.0489, 0.0813, 0.0075, -0.0474, 0.0459, -0.0209, 0.0312, 0.0365, 0.0298, 0.0522, -0.013, -0.021, 0.046, 0.0397, -0.0181, 0.0246, 0.0934, -0.002, 0.0274, 0.044, -0.0157, -0.0064, -0.0367, 0.0912, 0.0544, 0.0078, 0.025, 0.0418, -0.0366, 0.005, -0.0382, 0.0591, -0.0177, -0.0414, -0.0319, -0.0303, 0.0238, -0.0198, 0.0845, 0.0215, -0.0064, -0.0157, -0.0001, 0.0175, -0.0615, 0.0093, -0.0121, -0.029, -0.0182, 0.0125, 0.0346, 0.0199, 0.0783, -0.0191, -0.0166, -0.0029, -0.0118, 0.003, 0.0468, 0.0063, -0.0753, 0.0224, -0.0118, -0.0581, 0.0337, 0.0048, 0.0225, -0.0132, 0.0321, 0.0853, 0.015, -0.0269, 0.0057, 0.0197, 0.0141, -0.0132, -0.008, 0.0062, -0.024, -0.0263, 0.0244, -0.0306, -0.0513, -0.0234, 0.0358, 0.0509, -0.0062, 0.0787, 0.0074, -0.1132, -0.0378, 0.0253, 0.0425, -0.0026, -0.0176, 0.0227, -0.0281, 0.0494, -0.0203, 0.0058, -0.0148, 0.0091, 0.0132, 0.0508, -0.0308, -0.0157, -0.0524, -0.0016, 0.0331, -0.0257, -0.0188, 0.0295, -0.004, -0.0612, -0.0003, -0.0079, 0.063, 0.0258, -0.0322, -0.0387, 0.0113, -0.018, -0.0179, -0.0123, 0.0066, 0.0673, -0.0482, -0.0798, -0.0563, -0.0255, 0.045, 0.0218, 0.0253, -0.0419, 0.0253, 0.0216, -0.0438, 0.0421, -0.0664, 0.0025, -0.053, 0.0484, 0.046, 0.0262, 0.0545, -0.0059, -0.0117, 0.0008, 0.0496, -0.0086, -0.0226, -0.0276, -0.0009, -0.0214, 0.0361, 0.0277, 0.0078, 0.0038, 0.0233, -0.0134, 0.0129, -0.0103, 0.01, 0.0547, -0.0231, -0.0472, 0.0628, -0.0118, -0.0001, -0.0045, 0.0456, 0.0676, -0.0406, 0.0029, 0.004, 0.0086, -0.0083, -0.0328, -0.0525, 0.0031, 0.0383, -0.0555, 0.0316, 0.0112, -0.0168, 0.019, 0.0426, 0.0158, -0.0477, -0.0451, -0.0215, -0.0198, 0.0483, -0.0302, 0.0121, -0.064, 0.026, -0.0433, -0.0142, -0.0128, 0.0073, 0.0202, 0.0252, 0.0359, -0.0127, 0.0052, -0.0156, 0.0122, -0.021, 0.0279, 0.0069, 0.0054, 0.0042, 0.0581, 0.0111, -0.004, -0.0412, 0.0234, 0.0249, 0.023, 0.0303, 0.0145, 0.0575, 0.0189, -0.0364, 0.0204, -0.0147, 0.0234, 0.0314, -0.0146, 0.0584, -0.0454, -0.0003, -0.0157, 0.0567, 0.007, 0.0307, -0.0092, 0.0644, -0.0283, 0.0091, 0.0495, 0.0273, -0.0065, -0.0785, 0.02, -0.0496, 0.0196, -0.0314, 0.0617, 0.0125, 0.0128, 0.0615, 0.0334, -0.0052, -0.0299, 0.0031, -0.0329, 0.0063, 0.0331, -0.0307, 0.0345, 0.01, -0.0327, 0.002, 0.0431, 0.0044, -0.0417, 0.0183, 0.0216, -0.0258, -0.0039, -0.0193, 0.0594, 0.0641, 0.0113, -0.0481, -0.0628, -0.0082, -0.0427, -0.0244, -0.0083, 0.0054, 0.0303, -0.0624, 0.0388, -0.0038, -0.0184, 0.071, -0.0421, -0.0005, 0.0864, -0.0044, -0.0085, 0.0323, -0.017, 0.018, -0.0214, -0.0163, -0.0224, 0.0282, 0.0041, 0.0208, -0.0162, -0.0088, -0.0095, -0.0126, -0.0079, -0.0164, 0.0065, -0.0525, -0.0017, -0.0476, -0.0183, -0.0093, 0.0364, 0.0177, 0.0457, 0.0724, -0.0078, -0.0024, -0.0327, 0.0016, 0.0311, 0.0507, -0.0085, -0.0255, 0.0092, -0.0036, -0.0626, 0.0607, 0.0074, 0.021, 0.0614, -0.037, -0.0386, 0.0419, -0.0306, -0.0176, 0.0463, 0.0254, -0.0495, 0.0011, 0.0408, 0.0029, 0.0354, -0.0242, -0.001, -0.0144, 0.0355, 0.0276, -0.0124, -0.0607, -0.0156, 0.0235, 0.0458, -0.001, -0.0122, -0.0128, 0.0009, 0.0141, 0.0322, -0.013, -0.0846, -0.0124, 0.0183, 0.0259, 0.025, -0.0183, -0.0404, -0.0109, 0.0137, -0.0157, 0.0292, 0.0057, 0.0216, -0.0321, -0.0167, -0.0069, 0.0767, 0.0158, -0.0257, -0.0532, 0.0009, -0.0237, 0.0338, 0.0101, 0.0171, 0.0534, -0.0348, -0.0065, -0.0141, 0.0171, 0.0498, 0.0841, -0.0136, 0.0083, -0.0316, -0.003, -0.075, 0.0228, 0.013, 0.0061, 0.0243, -0.0378, 0.0192, 0.0603, 0.016, -0.0295, -0.0099, 0.0173, 0.0051, 0.0048, 0.042, -0.0143, -0.0568, -0.066, -0.0607, -0.0089, -0.0077, 0.0365, -0.0399, 0.0178, -0.0674, 0.0266, -0.0018, 0.0189, 0.0255, -0.0118, -0.0615, 0.018, 0.0017, 0.122, 0.0172, 0.0116, 0.0015, -0.0502, -0.0023, 0.0535, -0.0856, -0.017, -0.0757, -0.0904, 0.0223, -0.0472, -0.0546, -0.0016, 0.0119, 0.0104, 0.0021, 0.03, 0.0167, -0.0091, 0.0403, 0.0265, -0.0754, -0.0097, -0.0117, -0.0215, -0.024, -0.0285, -0.0386, 0.0207, -0.0105, 0.0291, 0.0017, -0.0139, 0.0183, -0.0023, 0.0041, -0.0035, 0.0218, -0.0015, 0.0554, 0.0053, 0.0007, 0.0086, 0.0309, 0.0152, -0.0091, -0.0243, 0.0018, -0.0088, -0.0489, 0.0516, -0.026, -0.0267, -0.0292, 0.0243, -0.0532, 0.054, 0.0079, -0.0417, -0.0166, 0.0226, 0.0021, 0.0239, -0.0386, 0.0073, -0.0813, -0.0306, -0.0281, -0.0072, 0.0077, 0.0153, -0.0219, -0.0408, -0.0016, -0.012, 0.0589, 0.0634, -0.0165, -0.0872, -0.0222, -0.0203, -0.0371, 0.0371, 0.028, -0.0368, -0.0, -0.0237, -0.0147, 0.0585, -0.0113, -0.0135, 0.0048, -0.0008, 0.0032, -0.0027, 0.019, 0.0065, 0.0107, -0.0357, -0.0186, -0.0127, -0.0011, 0.0171, -0.0346, -0.0279, 0.0293, -0.0194, -0.0143, 0.0317, -0.0673, 0.0156, -0.0024, 0.0134, -0.0378, -0.0139, -0.0045, 0.0511, -0.0297, -0.0067, -0.0478, 0.0077, -0.0617, 0.0518, 0.0085, 0.0505, 0.0196, -0.046, -0.0196, -0.0087, 0.0428, -0.0279, -0.0008, -0.0504, -0.0593, -0.064, -0.003, 0.0164, 0.0452, -0.0079, 0.0666, 0.0269, -0.0158, 0.0202, 0.061, 0.0785, -0.0298, 0.0632, 0.0085, -0.005, -0.0383, 0.0691, 0.007, 0.0652, 0.0089, -0.0097, -0.0068, 0.0557, -0.045, -0.0466, -0.0219, 0.0083, 0.0142, -0.0293, -0.005, 0.0232, 0.0021, 0.017, -0.004, -0.0807, -0.0261, 0.0034, 0.026, 0.0208, 0.0061, -0.0009, 0.0611, 0.0596, 0.0627, 0.0181, -0.0353, -0.0666, -0.0057, 0.0426, -0.0108, -0.013, -0.0036, 0.0301, -0.0705, 0.021, -0.0526, -0.0107, -0.0872, -0.0292, -0.0644, -0.0144, 0.0035, -0.0129, 0.0301, -0.079, -0.0041, -0.0131, 0.0232, 0.0176, 0.0564, -0.0477, -0.0133, -0.0464, 0.0061, 0.0206, 0.0023, 0.0198, 0.0108, -0.0167, 0.0891, -0.0252, 0.0129, -0.0296, -0.0547, -0.0226, -0.0127, 0.0157, -0.0157, 0.0014, -0.0261, -0.0017, -0.0195, -0.013, -0.0342, 0.041, -0.0014, 0.0124, 0.0472, -0.0508, 0.029, -0.0362, -0.0008, -0.0349, 0.0314, -0.0056, -0.0036, -0.0545, 0.0375, 0.0172, 0.0318, -0.017, 0.0003, -0.0177, 0.0014, 0.0435, 0.0101, 0.0468, -0.0047, -0.0504, 0.0222, 0.0137, -0.0251, -0.0314, 0.0416, 0.1043, 0.0576, 0.0381, -0.0281, -0.0029, -0.0349, -0.036, -0.0, -0.0453, -0.0804], "xy": [0.1539, 0.2542]}, {"index": 2, "text": "Acil durumlarda yönetici onayı ile daha kısa sürede izin kullanılabilir.\nDoğum izni: Kadın çalışanlara doğumdan önce 8, doğumdan sonra 8 hafta olmak üzere toplam 16 hafta ücretli doğum izni verilir. Babalara doğum sonrası 5 iş günü babalık izni verilir.", "vec": [-0.0272, 0.0257, -0.1603, 0.0031, 0.0466, -0.063, -0.0027, -0.024, -0.0369, -0.0126, -0.085, 0.0161, 0.065, 0.0265, 0.0034, -0.0743, -0.0054, -0.0532, -0.0233, 0.0341, -0.003, 0.0145, -0.065, -0.0514, 0.0755, -0.0039, 0.0157, 0.0264, -0.0525, 0.0019, 0.0031, -0.0433, -0.0054, -0.0091, 0.0204, -0.064, 0.0754, -0.0078, 0.0461, -0.0023, 0.0317, -0.0147, 0.0032, -0.0029, 0.0715, 0.007, 0.028, 0.0582, 0.0673, -0.0189, -0.0078, -0.0282, 0.0122, -0.0567, 0.0059, 0.0372, -0.0235, -0.0162, 0.0238, 0.025, 0.0653, 0.0311, -0.0775, 0.0023, 0.043, -0.0438, -0.0468, 0.0416, -0.0151, -0.0571, 0.0781, -0.0272, 0.0208, 0.0346, 0.0225, 0.0255, -0.0108, -0.0209, 0.033, 0.013, 0.0035, 0.042, 0.1004, -0.0231, 0.0223, 0.0168, -0.0214, 0.0109, -0.0384, 0.0896, 0.0341, 0.0136, 0.0018, 0.0341, -0.0344, -0.0211, -0.0387, 0.0769, -0.0063, -0.0651, -0.0077, -0.0198, 0.0554, -0.0284, 0.0354, 0.0396, 0.0006, -0.0065, -0.0045, -0.0045, -0.0848, 0.023, 0.0112, -0.0322, -0.0162, 0.0159, 0.0577, 0.0053, 0.0487, -0.0069, -0.0581, -0.0098, -0.0178, -0.0221, 0.0293, -0.017, -0.0301, 0.0261, 0.0391, -0.0205, 0.032, -0.0027, 0.0395, -0.018, 0.0052, 0.0677, 0.0144, -0.0425, -0.0166, 0.0068, 0.002, -0.0032, 0.0323, -0.0067, 0.0004, -0.0287, 0.0146, -0.0087, -0.0377, -0.0054, 0.067, 0.0395, 0.0214, 0.0443, -0.0057, -0.1091, -0.0649, 0.0253, 0.0086, 0.0178, -0.0042, 0.0251, 0.0044, 0.0549, -0.0135, 0.0169, -0.0544, 0.0283, -0.0098, 0.0768, -0.0325, -0.0342, -0.0567, -0.0179, 0.0512, -0.0396, -0.0269, -0.0006, 0.0122, -0.0328, 0.0217, -0.0048, 0.0227, 0.0442, -0.0114, -0.0533, 0.0323, -0.0467, -0.0234, 0.0055, -0.0268, 0.0563, -0.0558, -0.0411, -0.0241, -0.0372, 0.0662, 0.0394, 0.0408, -0.021, 0.0278, 0.0134, -0.0365, 0.0297, -0.0417, 0.0294, -0.0382, 0.0594, 0.0548, 0.0259, 0.0566, -0.0165, -0.0246, 0.0152, 0.0274, -0.0403, -0.0101, -0.063, -0.0054, 0.0055, 0.0401, 0.0176, -0.0132, -0.019, 0.0387, 0.0313, -0.0143, 0.0052, -0.0003, 0.0376, -0.0021, -0.0776, 0.058, -0.0464, -0.0049, 0.0074, 0.0227, 0.072, -0.0084, -0.0164, 0.0008, -0.025, 0.0062, -0.0351, -0.0609, 0.0367, 0.0081, -0.0381, 0.0244, 0.0155, -0.0154, 0.0301, 0.0349, 0.0418, -0.0244, -0.0506, -0.0323, -0.0119, 0.0051, -0.0164, 0.0303, -0.0278, 0.0237, -0.0647, -0.0279, -0.0454, 0.001, 0.0389, 0.0258, -0.0024, 0.01, 0.0146, 0.012, -0.0047, -0.037, 0.0075, 0.0014, 0.0096, -0.0161, 0.0615, 0.0395, -0.0232, -0.0497, 0.0024, 0.041, 0.0172, 0.0117, -0.0072, 0.0354, 0.0232, 0.0121, 0.0169, 0.0238, 0.0594, 0.0302, 0.0165, 0.0738, -0.024, -0.0116, -0.0226, 0.0423, 0.0084, 0.0043, -0.0196, 0.0488, -0.0332, 0.0194, 0.0711, 0.0211, -0.0344, -0.0583, 0.0389, -0.0597, 0.0053, -0.0501, 0.0458, -0.0054, 0.0252, 0.0237, -0.0072, 0.0135, -0.0197, -0.001, -0.069, 0.0268, 0.0117, -0.0077, 0.0668, -0.0068, -0.0328, -0.004, 0.0331, -0.0265, -0.054, -0.0262, 0.0052, -0.0276, -0.0109, 0.0076, 0.0846, 0.0145, -0.0026, -0.0166, -0.083, 0.0062, -0.0231, -0.0268, -0.0313, 0.0105, 0.0044, -0.0667, 0.0266, -0.0028, -0.0285, 0.0616, -0.009, -0.0155, 0.0789, 0.0033, 0.0121, 0.0284, -0.0243, -0.0013, -0.0326, 0.0246, -0.0219, 0.0432, 0.0253, 0.0191, -0.0123, -0.0085, 0.0006, 0.0034, -0.0234, -0.0303, 0.0155, -0.053, 0.0125, -0.0493, -0.0203, 0.0003, 0.0218, 0.025, 0.008, 0.0385, -0.0121, -0.0024, -0.0331, -0.0139, 0.0065, 0.0262, -0.0188, -0.0301, 0.0135, 0.0084, -0.0557, 0.0605, 0.0272, 0.0098, 0.061, -0.0121, -0.0156, 0.048, -0.0362, -0.0196, 0.0617, 0.0354, -0.039, 0.0299, 0.0239, 0.0235, 0.0377, 0.0061, -0.0117, -0.0112, 0.0378, 0.0106, -0.0067, -0.0704, 0.0148, 0.0461, 0.018, -0.0436, -0.018, -0.0075, 0.0042, 0.012, 0.0204, 0.0143, -0.053, 0.0157, -0.0186, 0.0287, 0.0118, -0.0366, -0.0356, -0.0092, 0.0149, -0.028, 0.0417, 0.0188, 0.0326, -0.0237, -0.0319, 0.0121, 0.0468, 0.0072, -0.0417, -0.0443, 0.0025, -0.0056, 0.0724, 0.0117, 0.0145, 0.0354, -0.0342, 0.0088, 0.001, 0.0168, 0.0797, 0.0538, 0.0086, 0.0036, 0.0054, 0.0108, -0.0826, -0.0109, -0.0202, -0.0017, 0.0308, -0.0289, -0.0094, 0.0557, -0.0025, -0.0257, -0.025, -0.0076, 0.0136, -0.0055, 0.0592, -0.0365, -0.0515, -0.0787, -0.0527, -0.0264, -0.0292, 0.041, -0.0425, 0.0104, -0.0761, 0.0253, 0.0416, 0.0376, 0.0136, -0.0214, -0.0276, 0.0005, -0.0032, 0.0767, -0.0017, 0.0157, 0.0041, -0.0473, -0.0155, 0.0244, -0.0571, -0.0258, -0.0479, -0.0781, 0.0111, -0.0409, -0.0164, 0.0035, -0.0166, -0.0491, 0.0017, 0.0538, 0.0177, 0.0232, 0.0165, 0.0381, -0.0588, 0.0043, -0.0192, -0.0386, -0.0116, -0.0352, -0.0599, 0.0218, -0.0263, 0.0452, 0.0042, -0.0243, 0.0116, -0.0084, 0.0172, -0.0046, 0.0394, 0.011, 0.0509, 0.0356, 0.0128, 0.0087, 0.0391, 0.0247, 0.009, -0.0281, 0.0168, -0.0036, 0.0036, 0.0845, -0.0056, -0.0414, -0.0122, 0.0242, -0.0674, 0.049, -0.0046, -0.0333, -0.0136, 0.0298, 0.0113, 0.042, -0.0242, 0.0163, -0.0415, -0.0311, -0.0199, -0.0004, 0.0386, 0.0071, -0.013, -0.0623, -0.0185, -0.0433, 0.0156, 0.0454, 0.0201, -0.0638, -0.0356, -0.0067, -0.0304, 0.0216, 0.0506, -0.0263, -0.0133, -0.0276, -0.0103, 0.0502, -0.0002, 0.0077, 0.0065, -0.0072, 0.015, 0.0185, 0.0011, 0.0271, 0.0368, -0.0373, -0.0609, 0.0222, 0.003, 0.028, -0.0242, -0.018, 0.0419, -0.0194, -0.0094, 0.0112, -0.032, -0.0119, -0.0012, 0.0209, -0.0173, 0.003, -0.0041, 0.0723, 0.0169, -0.0216, -0.0472, 0.0083, -0.0155, 0.0528, 0.0292, 0.0412, 0.0411, -0.0468, -0.0106, 0.0089, 0.0138, -0.0155, -0.0162, -0.0411, -0.0838, -0.062, 0.0188, -0.0017, 0.0237, -0.0508, 0.067, 0.0638, -0.0321, 0.0027, 0.0537, 0.0822, -0.0239, 0.0708, 0.0079, 0.0368, -0.0365, 0.0932, 0.0427, 0.0258, 0.0184, 0.0278, -0.0213, 0.0059, -0.0375, -0.0445, -0.0335, 0.0111, -0.0023, -0.0365, 0.0357, 0.004, -0.0027, 0.0287, -0.0006, -0.0893, -0.0434, 0.0257, 0.0344, 0.0193, -0.0195, 0.0212, 0.0716, 0.0437, 0.0269, -0.0213, -0.015, -0.0402, -0.042, 0.0121, -0.0167, -0.0237, 0.0262, 0.0373, -0.0718, 0.0346, -0.0551, 0.0073, -0.0933, -0.0164, -0.0717, -0.0521, -0.0011, -0.0404, 0.006, -0.0669, 0.0409, -0.0108, 0.0348, 0.0082, 0.0229, -0.0481, -0.0253, -0.0475, 0.0282, -0.0039, 0.0019, 0.0202, 0.0476, -0.0342, 0.0977, -0.0007, 0.0272, -0.0491, -0.0447, -0.0435, -0.0232, 0.0132, -0.0149, -0.0089, -0.0171, 0.0125, -0.0013, -0.0165, -0.0332, 0.0407, -0.0207, 0.0066, 0.0251, -0.0427, 0.0157, -0.0149, -0.0016, -0.0314, 0.0346, -0.029, -0.0244, -0.0668, 0.0544, 0.002, 0.0221, -0.0008, 0.0118, -0.042, 0.0141, 0.0885, -0.0074, -0.0021, 0.021, -0.0391, 0.0205, -0.0001, -0.0139, -0.0061, 0.072, 0.0961, 0.0183, 0.0468, -0.0031, 0.011, 0.0025, -0.0521, -0.0059, -0.0561, -0.1292], "xy": [0.1057, 0.2391]}, {"index": 3, "text": "Babalara doğum sonrası 5 iş günü babalık izni verilir.\nHastalık izni: Hastalık izinleri doktor raporu ile belgelenmelidir. Rapor, raporun başladığı günden itibaren en geç iki iş günü içinde İK birimine iletilmelidir.\nUzaktan çalışma: Çalışanlar yöneticilerinin onayı ile haftada en fazla iki gün uzaktan çalışabilir. Uzaktan çalışma günleri yıllık izin hakkından düşülmez.", "vec": [0.0085, 0.0197, -0.1469, 0.0191, 0.0349, -0.0521, 0.0043, -0.0136, -0.0885, -0.0203, -0.0641, 0.0166, 0.0799, 0.0125, -0.0195, -0.0712, 0.0157, -0.0174, -0.0179, 0.0159, -0.0392, 0.0118, -0.035, -0.0011, 0.0973, -0.0187, 0.0022, 0.0423, -0.0456, -0.0428, 0.0103, -0.0293, -0.0424, -0.0067, -0.0153, -0.0577, 0.0654, -0.0072, 0.0588, 0.0041, 0.0412, 0.0123, 0.0064, 0.0025, 0.0742, 0.0077, 0.0566, 0.0539, 0.0678, -0.0236, -0.0017, -0.0371, 0.0406, -0.0731, 0.0108, 0.0375, -0.0212, -0.0094, 0.0228, -0.0071, 0.0581, 0.0529, -0.0913, 0.0263, 0.0328, -0.0698, -0.0267, 0.043, -0.0356, -0.0335, 0.0693, -0.029, 0.0325, 0.0148, 0.0169, 0.0202, -0.02, -0.0357, 0.0538, 0.0248, 0.0253, 0.0301, 0.0689, 0.0232, 0.0234, 0.0118, -0.0143, 0.0125, -0.0343, 0.0672, 0.0644, 0.0198, 0.0038, 0.0464, -0.0602, 0.0057, -0.0324, 0.0613, -0.0027, -0.0378, -0.019, -0.017, 0.0648, -0.0322, 0.0763, 0.0293, 0.0258, -0.0099, -0.0113, -0.0459, -0.0565, 0.0305, -0.0163, -0.0337, -0.0195, 0.0219, 0.0437, -0.0227, 0.0498, 0.0161, -0.044, -0.0197, -0.048, 0.0098, 0.0112, 0.0282, -0.0373, 0.0282, 0.0472, -0.0351, 0.041, 0.0062, 0.0608, -0.012, 0.0124, 0.0466, 0.0333, -0.014, 0.0033, 0.0729, 0.0098, 0.0271, 0.0216, 0.0192, 0.0004, -0.0094, 0.0137, -0.0462, -0.0523, -0.0086, 0.039, 0.0408, 0.0004, 0.0599, 0.0216, -0.0754, -0.065, 0.0452, 0.0085, -0.0104, -0.0004, 0.0352, 0.0065, 0.0581, -0.043, 0.0084, -0.038, 0.0297, -0.0118, 0.0582, -0.0442, -0.03, -0.0573, -0.0136, 0.0535, -0.0414, -0.0204, 0.0033, 0.0175, -0.0563, -0.0016, -0.0337, 0.0344, 0.0454, -0.0471, -0.0174, 0.0471, -0.0224, -0.0314, -0.0063, 0.0101, 0.0464, -0.029, -0.0786, -0.0412, -0.0126, 0.0478, 0.0079, 0.0429, -0.0304, -0.0021, 0.0192, -0.0682, 0.0204, -0.05, 0.001, -0.0645, 0.0353, 0.0037, 0.0297, 0.0534, -0.0165, -0.0009, 0.0022, 0.0482, -0.0288, -0.0149, -0.0388, -0.0039, 0.0036, 0.0151, 0.028, -0.0136, -0.026, 0.0416, 0.0156, 0.0095, -0.0039, 0.0152, 0.0289, -0.0092, -0.0782, 0.0773, -0.0254, -0.0025, 0.0313, 0.0627, 0.0585, -0.0172, -0.0126, -0.0083, -0.0045, -0.0019, -0.0525, -0.0545, 0.035, 0.0043, -0.0293, 0.0612, 0.0047, -0.0095, 0.03, 0.0528, 0.0403, -0.0123, -0.0397, -0.0023, -0.0286, 0.0098, -0.0389, 0.025, -0.055, 0.002, -0.0242, -0.0198, -0.0256, -0.0002, 0.042, 0.0316, 0.005, 0.0115, 0.0331, -0.0024, 0.0102, -0.0425, -0.0187, 0.0036, 0.0182, -0.0055, 0.0691, 0.0407, -0.0175, -0.0537, -0.0148, 0.0279, 0.0515, 0.0034, 0.0125, 0.0622, -0.0002, -0.0193, 0.0344, 0.0045, 0.0332, 0.026, 0.013, 0.0659, -0.0115, 0.0076, 0.001, 0.0369, -0.0006, -0.02, -0.0192, 0.0068, -0.0395, 0.0201, 0.0412, 0.0215, -0.0381, -0.0672, 0.0111, -0.0643, -0.0007, -0.0363, 0.0549, -0.0316, 0.035, 0.0304, 0.0115, -0.0152, -0.0249, 0.0026, -0.0603, -0.0157, 0.0301, -0.0067, 0.0405, 0.0128, -0.0256, 0.0011, 0.0454, 0.0014, -0.056, -0.0141, -0.0156, -0.0193, 0.0191, -0.0186, 0.0778, 0.0473, -0.0045, -0.0302, -0.0995, -0.012, -0.0332, -0.0299, -0.028, 0.0396, 0.019, -0.0667, 0.0464, -0.0227, -0.0439, 0.045, 0.0073, -0.0176, 0.0618, -0.0016, -0.0096, 0.0482, -0.0304, 0.031, -0.0312, 0.0363, -0.0059, 0.038, 0.0078, 0.0004, -0.0116, 0.0134, 0.0034, 0.0261, 0.0306, -0.0106, 0.0091, -0.0617, 0.0118, -0.0396, -0.0229, 0.0016, -0.0193, 0.016, 0.008, 0.0311, -0.01, 0.0031, -0.0332, 0.0109, 0.0122, 0.0314, -0.0251, -0.0342, 0.0218, 0.0003, -0.0597, 0.0419, 0.0227, -0.0065, 0.0661, -0.0014, -0.0174, 0.0576, -0.0318, -0.0439, 0.0219, 0.0189, -0.0611, 0.0164, 0.0046, -0.0022, 0.0534, 0.0047, -0.0267, 0.0069, 0.011, 0.0216, 0.0088, -0.0531, 0.0105, 0.0341, 0.0329, -0.0615, -0.0144, 0.0011, 0.0341, 0.0448, 0.034, 0.0239, -0.0668, 0.0263, -0.0031, 0.0476, 0.0273, -0.0078, -0.024, -0.028, 0.0065, -0.0386, 0.0014, 0.0297, 0.0208, -0.0278, -0.0279, 0.0229, 0.0717, 0.0472, -0.0441, -0.0406, 0.0124, 0.0038, 0.0942, 0.0244, 0.003, 0.0269, -0.0412, 0.0144, -0.0146, 0.0065, 0.0658, 0.0683, -0.0023, 0.0223, 0.0329, 0.0152, -0.096, -0.0159, -0.0135, 0.0245, 0.0308, -0.0428, -0.0185, 0.0603, 0.0094, -0.0287, -0.0063, -0.0122, -0.0157, -0.0205, 0.0476, -0.0181, -0.0501, -0.097, -0.0756, -0.0372, -0.016, 0.0481, -0.0291, 0.0206, -0.0461, 0.0283, 0.0685, 0.0318, 0.029, -0.0122, -0.0521, 0.0051, 0.0257, 0.0783, 0.0348, 0.0453, 0.0158, -0.0303, -0.0099, 0.0347, -0.0489, -0.0195, -0.0513, -0.0676, 0.0281, -0.0291, -0.0033, 0.0133, 0.0145, -0.0414, -0.0394, 0.0372, 0.007, 0.0202, 0.005, 0.0234, -0.0968, -0.0375, -0.0241, -0.0179, 0.009, -0.0122, -0.0666, -0.0119, -0.0078, 0.006, -0.0195, 0.0, -0.0037, 0.0204, 0.0182, -0.0037, 0.0623, 0.0113, 0.0641, 0.0181, 0.0009, -0.0018, 0.009, 0.0168, 0.0184, -0.0349, -0.018, 0.0074, -0.035, 0.0537, -0.0142, -0.0432, -0.014, 0.0233, -0.0771, 0.0353, -0.0231, -0.0326, -0.0076, 0.0374, -0.0082, 0.0364, -0.0418, 0.0496, -0.0589, -0.0044, -0.0263, 0.0178, 0.0321, -0.0144, -0.0153, -0.0592, -0.009, -0.0235, 0.0151, 0.0317, 0.0128, -0.0657, -0.0192, -0.0014, -0.0364, 0.0376, 0.0442, -0.0072, -0.0082, -0.0065, -0.0205, 0.0103, 0.027, 0.0094, 0.0165, 0.008, -0.0111, 0.0053, -0.0046, 0.0337, 0.0261, -0.0059, -0.0466, -0.0277, -0.013, 0.0189, -0.036, -0.0008, 0.0462, -0.0083, -0.0134, 0.0031, -0.0176, -0.0061, -0.006, 0.0274, -0.0232, 0.0186, 0.0223, 0.0531, -0.0174, -0.0091, -0.0509, 0.0117, -0.0202, 0.0424, 0.0225, 0.0411, 0.0151, -0.0688, -0.0051, -0.0047, 0.0478, -0.0424, -0.011, -0.0538, -0.0476, -0.0721, 0.0237, 0.0079, 0.0502, -0.0289, 0.0593, 0.0451, -0.042, -0.0025, 0.0335, 0.0426, -0.0038, 0.0541, 0.0187, 0.0332, -0.0195, 0.0671, 0.0427, 0.0407, 0.0131, 0.0175, -0.0273, 0.034, -0.0264, -0.0418, -0.0378, -0.015, 0.0096, -0.0216, 0.044, 0.0482, -0.0064, 0.0278, 0.0028, -0.0875, -0.0478, 0.0121, 0.0182, 0.0078, -0.0199, 0.0125, 0.0488, 0.0504, 0.0175, -0.0151, -0.0395, -0.0442, -0.0133, 0.0021, -0.0049, -0.0015, 0.0436, 0.0475, -0.0838, 0.031, -0.0404, -0.024, -0.0494, -0.0032, -0.0691, -0.0328, -0.017, -0.0594, 0.0273, -0.0656, 0.0132, -0.0172, -0.0076, 0.0154, 0.0108, -0.0247, -0.0305, -0.0302, 0.0352, 0.0053, 0.0288, 0.0129, 0.0241, -0.019, 0.0892, -0.0259, 0.0358, -0.0621, -0.019, -0.0249, -0.0293, 0.0367, -0.0188, -0.0207, -0.0549, 0.0079, 0.0276, -0.0245, -0.0395, 0.04, -0.0383, -0.008, 0.0171, -0.0455, 0.0196, -0.0186, 0.0215, -0.0477, 0.0157, -0.0336, -0.0356, -0.0553, 0.0242, -0.0044, 0.0263, 0.0067, -0.0057, -0.0318, 0.0002, 0.0462, -0.0322, 0.0208, 0.0184, -0.0471, 0.0013, -0.0032, -0.009, -0.0189, 0.0424, 0.1135, 0.032, 0.048, -0.0173, -0.0177, -0.0105, -0.057, -0.0349, -0.0667, -0.1046], "xy": [0.1699, 0.0808]}], "queries": [{"text": "Babalara kaç gün izin veriliyor?", "vec": [0.0437, 0.0165, -0.1592, 0.0365, 0.0384, -0.0315, -0.0374, 0.0048, -0.0929, 0.0127, -0.0198, 0.0182, 0.0792, -0.004, 0.0216, -0.0615, -0.0031, -0.0331, -0.0474, -0.0141, -0.0279, 0.0006, -0.04, -0.0485, 0.121, -0.0076, 0.0018, 0.037, -0.0511, -0.028, 0.0106, -0.0247, -0.0681, -0.0042, 0.0452, -0.0189, 0.0525, 0.0168, 0.0421, -0.0564, 0.0507, 0.0035, -0.0099, -0.0188, 0.0666, 0.0232, 0.0979, 0.0292, 0.0205, -0.0375, -0.0256, -0.0754, -0.013, -0.0815, 0.035, 0.0004, -0.0198, 0.0138, 0.0129, -0.0124, 0.0687, 0.0772, -0.0188, 0.021, 0.0279, -0.062, -0.0444, 0.004, -0.0108, -0.0177, 0.0309, 0.0002, 0.0081, 0.0604, 0.0035, 0.001, -0.0638, -0.054, 0.0529, 0.0148, 0.0009, -0.0194, 0.0475, -0.0038, 0.0334, -0.0099, 0.0141, 0.0204, -0.0054, 0.0696, 0.0429, 0.007, 0.0018, 0.064, -0.0576, 0.0238, -0.0555, 0.0417, 0.0107, 0.0043, -0.0106, -0.0218, 0.0134, -0.0115, 0.022, 0.0108, 0.0134, -0.0516, 0.0008, -0.0318, -0.0433, -0.0154, -0.0259, -0.0465, -0.0211, 0.0373, 0.0336, -0.0259, 0.0612, -0.0271, -0.0083, -0.0216, -0.0383, -0.0046, 0.0404, 0.0347, -0.0486, -0.0021, 0.0311, -0.0434, -0.0406, 0.0163, 0.0664, -0.026, 0.0249, 0.0299, 0.0479, -0.003, -0.0157, 0.0273, -0.027, -0.0014, 0.0046, 0.0111, -0.0257, -0.052, 0.0079, -0.044, -0.0397, -0.049, 0.0278, 0.0393, -0.0068, 0.0236, 0.0253, -0.094, -0.0258, 0.0241, 0.0005, -0.0336, 0.0025, 0.0124, 0.0052, 0.0378, 0.0252, -0.0119, -0.016, 0.0593, 0.0008, 0.0532, -0.0596, -0.0296, -0.0605, -0.0254, 0.0456, -0.0359, -0.056, 0.0047, 0.0385, -0.0773, 0.0022, -0.0063, 0.0468, 0.0442, -0.0371, 0.0087, 0.0299, 0.0321, -0.03, -0.04, -0.0097, 0.0554, -0.0634, -0.0229, -0.0549, 0.0067, 0.0473, -0.0018, 0.0344, -0.0047, -0.0064, -0.014, -0.0444, -0.0004, -0.0346, -0.0132, -0.0303, 0.0127, -0.021, 0.046, 0.0331, -0.0358, -0.0078, 0.0258, 0.0555, -0.0374, 0.0276, -0.0426, -0.0012, 0.0291, 0.0396, 0.0409, 0.0184, -0.0145, 0.0362, -0.0175, -0.016, -0.0042, 0.0147, -0.003, 0.0135, -0.0374, 0.0524, -0.0165, 0.0143, 0.0168, 0.0545, 0.0253, -0.0191, 0.0034, 0.0135, -0.0073, 0.0048, -0.0644, -0.0247, 0.0059, 0.0208, -0.0009, 0.0517, -0.0317, 0.0006, 0.0012, 0.0706, 0.0056, -0.0544, -0.0664, 0.0016, -0.027, 0.0512, -0.0395, 0.0426, -0.0827, -0.0037, -0.0104, -0.0225, 0.0123, 0.0022, 0.0801, 0.0321, 0.0086, -0.0095, 0.002, -0.0184, 0.0156, -0.0597, 0.006, -0.0023, -0.0132, 0.0026, 0.0626, -0.021, -0.0072, -0.0201, -0.0307, 0.0146, 0.0301, 0.0127, 0.0522, 0.014, 0.0227, -0.0507, 0.0459, -0.0171, 0.0286, 0.0215, 0.0172, 0.0298, -0.0038, 0.0661, 0.0151, 0.0485, -0.0247, -0.0012, -0.0269, 0.0149, -0.0501, 0.0396, 0.0361, -0.0001, 0.0079, -0.0613, -0.0291, -0.0147, 0.0078, -0.0537, 0.0018, -0.016, 0.018, 0.0312, 0.027, 0.0184, -0.0168, -0.0045, -0.0583, -0.0235, 0.0181, 0.0066, 0.0492, 0.0071, -0.0186, -0.0618, 0.0516, 0.0121, -0.04, 0.0078, -0.0102, -0.0574, 0.0005, -0.051, 0.0883, 0.0165, 0.0162, -0.0105, -0.0688, -0.0229, -0.0476, -0.0318, -0.0239, -0.0263, 0.0494, -0.0537, 0.0089, 0.039, -0.0098, 0.0398, 0.0045, -0.0198, 0.0661, -0.0114, -0.0129, 0.0325, -0.0244, 0.0501, -0.0097, -0.0527, -0.0005, 0.0522, -0.0083, 0.0073, -0.0137, -0.0103, 0.0231, 0.0126, 0.0511, -0.0622, 0.0137, -0.0377, 0.0134, -0.0356, 0.0014, 0.0227, 0.0221, 0.028, 0.0252, 0.019, -0.0082, 0.0252, -0.0102, -0.0195, 0.0109, 0.0047, 0.0036, -0.0458, 0.0103, -0.0113, -0.0336, 0.0496, -0.0322, 0.011, 0.0238, 0.0061, -0.0252, 0.0315, -0.035, -0.059, 0.0195, 0.0073, -0.0383, 0.0477, -0.0072, -0.0245, 0.0476, -0.003, -0.0423, 0.0058, 0.0134, 0.0159, 0.079, -0.0392, -0.0349, 0.0657, 0.0402, -0.0309, -0.0374, 0.0086, 0.0315, 0.0253, -0.0004, 0.0262, -0.0614, 0.0007, -0.0033, 0.0176, 0.0476, -0.0173, -0.0382, -0.0714, -0.0265, -0.0187, 0.0387, 0.0382, 0.0146, 0.004, -0.0568, 0.0461, 0.0559, 0.0285, -0.0682, -0.0352, 0.0272, 0.0404, 0.0636, 0.0168, 0.0324, 0.0863, -0.0485, 0.0293, -0.0107, 0.0127, 0.0227, 0.069, -0.0172, -0.0133, 0.0104, 0.029, -0.0877, -0.038, -0.0273, 0.0476, 0.021, -0.0295, 0.0155, 0.0422, 0.0165, -0.0084, 0.0047, 0.017, 0.0357, -0.0502, 0.0062, -0.0094, -0.0373, -0.0724, -0.0553, -0.0224, -0.0024, 0.0656, -0.0294, -0.015, -0.0455, 0.0129, 0.0145, 0.0313, -0.0103, 0.0334, -0.0389, 0.0031, 0.0237, 0.1182, 0.008, -0.0039, -0.0078, -0.0305, 0.0106, 0.0293, -0.0484, -0.027, -0.0033, -0.042, 0.0651, -0.0309, -0.0294, 0.0271, -0.0138, 0.0104, -0.0181, 0.0319, -0.0142, 0.0108, 0.004, 0.0329, -0.0882, -0.0408, -0.0032, -0.0307, 0.0115, -0.0129, -0.0491, -0.0367, -0.0238, 0.008, -0.0058, -0.0063, -0.0026, -0.0013, 0.0072, 0.0138, 0.0604, 0.0335, 0.0325, 0.0239, -0.0436, 0.0084, -0.0055, -0.0117, 0.0353, -0.0409, -0.0471, 0.0283, -0.0297, 0.023, -0.0232, -0.03, -0.0021, 0.0323, -0.0513, 0.0423, -0.0221, -0.0404, -0.0156, 0.0126, 0.0226, 0.0526, -0.0282, 0.0713, -0.0096, -0.0252, -0.0234, 0.0199, 0.0196, -0.018, -0.032, -0.0533, 0.0266, 0.0047, 0.0562, 0.0306, 0.019, -0.0893, 0.0033, -0.0054, -0.0243, 0.0509, 0.0328, 0.0598, -0.0244, -0.0152, 0.0127, 0.0243, -0.0079, -0.0147, 0.0231, 0.0318, -0.0214, -0.0059, 0.0146, 0.0432, 0.0083, -0.0209, -0.0498, 0.0063, 0.0073, -0.0079, -0.0058, -0.0344, 0.0474, -0.0229, -0.0118, -0.0007, 0.0203, -0.0282, 0.0094, 0.024, -0.0213, 0.0404, 0.0307, 0.0735, 0.0042, -0.0231, -0.0624, -0.0139, -0.0023, 0.0456, 0.0582, 0.0532, -0.0246, -0.0808, -0.0063, 0.0189, 0.0629, -0.0289, -0.0146, -0.0367, -0.0436, -0.0328, -0.0165, 0.017, 0.0995, -0.0196, 0.0473, 0.0437, -0.0579, -0.023, 0.0407, 0.0414, -0.0213, 0.0566, 0.0425, 0.0106, -0.0143, 0.0634, 0.0419, 0.0115, -0.0012, 0.022, -0.0164, 0.0546, -0.0084, -0.0596, -0.0138, -0.0188, -0.0193, -0.007, 0.0117, 0.0243, 0.0482, -0.0038, -0.0022, -0.0685, -0.0046, -0.005, 0.0223, 0.0078, -0.015, -0.002, 0.0197, 0.0659, 0.0481, -0.0001, -0.0461, -0.026, -0.0025, 0.0414, -0.0014, -0.0061, -0.0192, 0.0235, -0.076, 0.0568, -0.0416, 0.0312, -0.0799, 0.0035, -0.0419, 0.0107, -0.0477, -0.0651, 0.0255, -0.0606, 0.0374, -0.0395, -0.0029, 0.0064, 0.0156, -0.0364, -0.0065, -0.0274, -0.0099, 0.0128, 0.0376, 0.0375, 0.0285, -0.0313, 0.103, 0.0232, 0.0159, -0.0253, 0.0036, -0.036, -0.0207, 0.0526, -0.028, 0.0114, -0.0535, 0.0166, -0.0098, -0.0388, -0.0386, -0.0043, 0.0057, -0.0049, 0.0094, -0.0559, 0.0334, 0.0151, 0.035, -0.0297, 0.0599, -0.0189, -0.0212, -0.0583, 0.0001, -0.0194, 0.0223, 0.0198, 0.0378, -0.0306, 0.0308, 0.0337, 0.0144, 0.0497, 0.0325, -0.0549, -0.0195, 0.006, -0.0, -0.0247, 0.0512, 0.0963, 0.0268, 0.0475, -0.0458, -0.0233, 0.0046, -0.0554, -0.0418, -0.0422, -0.0556], "scores": [0.6666, 0.715, 0.7013, 0.781], "xy": [0.201, -0.2391]}, {"text": "Evden çalışabilir miyim?", "vec": [0.0034, 0.0272, -0.1652, -0.0199, 0.0393, -0.0482, -0.047, -0.0254, -0.0099, 0.0153, -0.0285, -0.0099, 0.071, 0.0036, 0.0071, -0.0169, 0.0193, -0.0385, -0.0289, 0.0631, -0.0511, 0.0197, -0.0533, -0.0135, 0.1326, 0.0001, 0.0247, 0.0445, -0.0229, -0.0021, 0.0236, -0.0292, -0.0418, -0.0266, 0.008, -0.0272, 0.0362, 0.0031, 0.0498, 0.0239, 0.017, 0.0031, 0.0075, 0.0051, 0.1017, -0.0019, 0.0725, -0.004, 0.0583, -0.0478, -0.0139, -0.028, 0.0355, -0.0485, 0.0442, -0.0087, 0.0049, 0.0343, -0.0049, -0.0013, 0.0797, -0.0049, -0.0164, 0.0113, 0.0187, -0.0769, -0.0544, 0.0683, -0.015, -0.0099, 0.0284, 0.0152, 0.0473, 0.015, 0.0032, -0.0133, -0.0181, -0.0642, -0.0062, -0.0115, -0.0004, 0.0304, 0.064, -0.0549, 0.0366, -0.0178, -0.0142, -0.0167, -0.0317, 0.0065, 0.0295, 0.0274, -0.0087, 0.0429, -0.0664, -0.0124, 0.0001, 0.0431, -0.013, -0.0052, 0.0092, -0.0492, 0.0211, -0.0335, 0.0716, 0.0616, -0.0172, -0.0219, 0.0248, -0.0298, -0.0363, 0.0054, -0.0278, -0.0206, 0.0188, 0.037, 0.0299, 0.0033, 0.0579, 0.0279, 0.0064, -0.0197, -0.0221, 0.0038, -0.0073, 0.0296, -0.0098, 0.0027, 0.0467, -0.0487, -0.0007, 0.0185, 0.07, -0.0744, -0.0226, 0.0213, -0.0199, -0.0523, 0.0065, 0.0008, -0.0435, -0.0094, 0.0569, 0.011, -0.0317, -0.0598, 0.0117, -0.0248, -0.0716, -0.0011, 0.0082, 0.0129, 0.0155, 0.0427, 0.0271, -0.0858, 0.0051, 0.0209, 0.0099, -0.0411, 0.0052, 0.0336, 0.0294, 0.0117, -0.0353, -0.0034, -0.0149, 0.0228, 0.003, 0.0277, -0.0489, -0.0575, -0.0092, -0.0107, 0.0026, -0.0202, -0.0542, -0.0391, 0.0249, -0.05, -0.0266, -0.0348, 0.0561, -0.0181, -0.0509, -0.0021, 0.0053, -0.0002, -0.0341, -0.0252, 0.0382, 0.0378, -0.0738, -0.0228, -0.0418, -0.0282, 0.0506, -0.0042, 0.0238, -0.0228, -0.0195, 0.0324, -0.0378, -0.0277, -0.0605, 0.0324, -0.0177, 0.062, -0.0151, 0.0479, 0.088, -0.0177, -0.0478, 0.0015, 0.015, -0.0303, 0.0121, -0.0251, 0.0015, 0.0109, 0.0353, 0.0068, 0.0393, -0.0181, 0.0554, 0.0185, -0.0608, 0.0143, -0.0115, 0.0506, -0.0276, -0.0343, 0.0682, 0.0181, 0.0397, 0.0044, -0.0006, 0.0579, 0.0166, -0.0163, 0.0273, -0.0067, 0.0228, -0.061, -0.0742, 0.0478, 0.0035, -0.0801, 0.0471, -0.0224, 0.0021, -0.0062, -0.0214, 0.0996, -0.0071, -0.0259, -0.0074, -0.0554, 0.0396, 0.0016, -0.0036, -0.0416, 0.0252, -0.0392, 0.0283, 0.0005, -0.0391, 0.0252, 0.0528, -0.0163, 0.0214, 0.0115, -0.0325, 0.0394, -0.0199, -0.001, 0.022, -0.0214, -0.0431, 0.04, -0.0261, -0.0494, -0.057, -0.0374, -0.0119, 0.0303, -0.0092, 0.0046, 0.0546, 0.0242, 0.0221, -0.0016, -0.0138, 0.0633, -0.0331, -0.0127, 0.0576, -0.0284, -0.0299, -0.0717, 0.027, 0.0463, 0.0082, -0.0416, 0.016, -0.0406, 0.0072, 0.0444, 0.021, -0.0538, -0.0717, -0.0157, -0.0314, -0.0403, -0.0387, 0.0562, -0.0233, 0.0275, 0.0652, 0.0122, 0.0058, 0.005, -0.0137, -0.0456, 0.0281, -0.0025, -0.0007, 0.0463, 0.0145, 0.0106, -0.0579, -0.0061, 0.0268, -0.0439, -0.0034, -0.0053, -0.0036, 0.0252, -0.0131, 0.0532, -0.0494, -0.0186, 0.0162, -0.0721, 0.0063, -0.019, -0.0593, 0.0088, -0.01, 0.0223, -0.0124, -0.0117, 0.025, 0.0083, 0.0133, -0.0131, -0.001, 0.0354, 0.0079, -0.0068, 0.0526, -0.0136, 0.0238, -0.037, 0.0223, 0.0408, 0.0355, 0.0367, 0.0236, 0.0137, -0.011, -0.0021, 0.0003, 0.0285, -0.0068, 0.0377, -0.0519, 0.0274, -0.072, 0.0024, -0.0053, 0.0141, 0.0348, -0.0029, 0.0309, -0.0192, 0.0132, 0.0132, -0.0052, 0.033, 0.0435, -0.0371, -0.0007, 0.0229, -0.0223, -0.0214, 0.0432, -0.0389, 0.0525, 0.0441, 0.0205, -0.0182, 0.0414, -0.0274, -0.0514, 0.0227, -0.0047, -0.0189, 0.0294, -0.0009, 0.0344, 0.0352, -0.0095, -0.0382, 0.0046, 0.05, 0.0359, 0.0557, -0.004, 0.029, 0.021, 0.0511, -0.0583, -0.0234, 0.0148, 0.0189, 0.0669, 0.0351, -0.0047, -0.0873, 0.0212, -0.0011, 0.0295, 0.0011, 0.0079, -0.0139, 0.007, -0.0103, -0.0435, 0.0014, 0.0453, -0.0633, -0.0118, -0.0378, 0.0089, 0.0277, -0.0083, -0.1002, -0.029, 0.016, 0.0218, 0.0508, 0.0221, 0.0391, 0.058, -0.0517, 0.016, -0.016, -0.0066, 0.0552, 0.0696, 0.0167, 0.0005, 0.0329, 0.0107, -0.0491, -0.0386, -0.0272, 0.0189, 0.0399, -0.0373, 0.0381, 0.0586, 0.0082, 0.0281, -0.0227, -0.0029, 0.0085, 0.0088, 0.0394, -0.0453, -0.0773, -0.0704, -0.0346, 0.0032, -0.0213, 0.0714, -0.0095, -0.0231, -0.054, 0.0219, 0.0395, 0.0566, -0.02, -0.0322, -0.0552, 0.0157, -0.0063, 0.0651, 0.0096, 0.0428, -0.0278, -0.0003, -0.0052, 0.074, -0.0713, 0.0051, -0.0117, -0.0832, 0.0241, -0.0421, -0.0258, 0.0553, -0.0333, -0.0156, -0.0383, -0.0108, -0.0109, -0.0071, 0.0207, 0.0349, -0.0812, 0.0122, -0.0388, -0.0417, 0.0331, -0.0262, -0.0463, 0.0599, 0.0101, 0.0456, -0.0112, -0.0268, -0.0354, 0.0385, -0.0186, -0.0109, 0.045, 0.0365, -0.014, 0.0033, -0.0366, 0.0035, 0.0252, 0.028, 0.0494, -0.0081, -0.005, 0.0219, -0.0236, 0.0641, -0.0247, 0.0057, -0.0412, 0.0617, -0.0145, 0.0295, 0.0189, -0.0112, -0.0268, 0.0435, -0.0179, 0.0524, -0.0184, 0.0218, -0.0171, 0.0056, 0.0441, 0.0002, 0.0557, -0.0415, -0.0059, 0.0345, -0.0183, -0.0139, -0.0182, 0.0214, 0.034, -0.0713, -0.0026, 0.0636, -0.0483, 0.0057, 0.0493, 0.0062, 0.0066, 0.0139, -0.0626, 0.0241, -0.0068, -0.0351, 0.0398, 0.0056, -0.0108, -0.0042, 0.0259, 0.0215, -0.0599, 0.0224, -0.0323, 0.0145, 0.022, 0.021, 0.0131, -0.0338, -0.0042, -0.041, -0.0203, -0.0249, -0.0481, -0.0049, -0.0346, 0.0188, -0.0355, -0.0281, -0.0061, 0.0453, -0.0138, -0.0539, -0.0137, -0.0021, -0.0338, 0.0539, 0.0521, 0.0364, 0.0123, -0.0533, -0.0185, 0.0338, 0.0211, -0.0438, -0.0019, -0.0334, -0.0743, -0.0593, -0.0189, 0.031, 0.0355, -0.0219, 0.0685, 0.0568, -0.0228, 0.0051, 0.0065, 0.0645, 0.0099, 0.0057, 0.0219, 0.0099, 0.0023, 0.0904, 0.0517, 0.0209, 0.0342, 0.0368, 0.0068, 0.0336, -0.0393, -0.0469, -0.049, -0.0235, -0.0064, 0.037, -0.0023, 0.0052, -0.0138, -0.0421, -0.0227, -0.0528, -0.022, 0.005, -0.0325, 0.0091, 0.0073, -0.0119, 0.0265, 0.0192, 0.0604, 0.0077, -0.0219, -0.0234, -0.0026, 0.0241, -0.0239, -0.0008, -0.0291, 0.0845, -0.026, 0.051, -0.0658, -0.0083, -0.0958, -0.0093, -0.0047, -0.021, -0.0294, -0.024, 0.0089, -0.0388, 0.0272, -0.0206, -0.0115, 0.0481, 0.0154, -0.0887, -0.0007, -0.0165, 0.0061, 0.0173, 0.0339, 0.0028, 0.0015, -0.032, 0.0843, 0.0408, 0.0523, -0.0512, -0.0278, -0.0093, 0.0707, 0.0171, -0.0083, -0.0097, -0.0419, 0.0291, -0.0024, -0.0245, -0.0497, 0.0313, -0.014, 0.0177, 0.0467, -0.0063, 0.0055, 0.0462, -0.0292, -0.0236, 0.0172, 0.0024, -0.0055, -0.062, -0.0042, 0.0105, 0.0345, 0.0112, 0.0031, -0.0444, -0.0022, 0.0206, -0.0572, 0.0069, 0.0001, -0.0698, 0.0621, 0.0567, 0.0051, 0.0007, 0.0571, 0.0872, 0.0118, 0.0448, -0.0488, -0.0265, -0.0139, -0.0428, -0.0528, -0.0626, -0.0269], "scores": [0.6451, 0.6345, 0.6653, 0.6786], "xy": [0.0167, -0.1211]}, {"text": "Rapor ne zamana kadar teslim edilmeli?", "vec": [0.0011, 0.026, -0.1778, 0.0057, -0.0036, 0.0094, 0.0013, 0.0223, -0.0276, 0.0101, -0.0138, -0.0206, 0.0938, -0.0141, -0.0101, -0.0333, -0.0069, -0.0242, -0.0209, 0.0369, -0.0565, -0.0268, -0.0167, -0.0318, 0.1033, -0.0625, 0.0169, 0.025, -0.0479, 0.0342, 0.051, 0.0381, -0.0514, 0.0143, 0.0178, -0.0141, 0.0862, -0.0132, 0.0145, -0.0448, 0.0498, -0.0677, -0.0324, 0.0317, 0.0683, 0.0187, 0.0726, 0.028, -0.0269, -0.0726, -0.0092, -0.0198, 0.0519, -0.0379, 0.0311, -0.0061, -0.0423, 0.0055, 0.0281, 0.0257, 0.1196, 0.0171, -0.1044, 0.0444, -0.0356, -0.068, -0.0113, 0.0333, 0.0356, -0.0274, 0.0397, 0.0037, 0.0238, 0.0456, -0.0082, 0.0227, 0.0041, -0.0324, 0.0535, 0.0105, 0.012, 0.008, 0.0423, 0.0348, 0.0096, 0.019, 0.015, 0.0014, -0.0451, 0.0277, 0.0346, 0.0141, 0.0152, 0.0412, -0.0213, 0.0242, -0.0538, 0.0025, 0.0224, -0.0585, 0.0194, 0.0193, 0.0581, -0.0063, 0.0612, 0.0042, 0.0171, -0.0532, -0.0203, -0.0399, -0.0269, 0.0025, -0.059, -0.0284, 0.0265, 0.0205, 0.0782, -0.0172, 0.0007, 0.0451, 0.0, -0.0313, 0.0402, 0.0045, 0.0395, 0.014, 0.0294, 0.0067, 0.0233, -0.0276, -0.035, 0.0273, 0.0743, -0.0144, 0.0246, 0.0653, 0.0502, -0.0224, -0.0036, 0.0537, 0.0002, 0.0287, 0.0117, -0.0074, -0.0189, -0.0582, 0.0303, -0.0443, -0.0689, -0.0021, -0.0021, 0.0103, -0.0028, 0.0146, 0.0054, -0.0436, 0.0055, -0.0158, 0.0301, -0.0204, 0.0021, 0.0249, 0.048, 0.0471, 0.0311, -0.0094, -0.0164, 0.0064, 0.0322, 0.0201, -0.0412, -0.0315, -0.0344, -0.0153, 0.0095, -0.0455, -0.0561, -0.0129, 0.0392, -0.0418, -0.0306, -0.0242, 0.0302, 0.0354, -0.0379, -0.0399, 0.0547, 0.0005, -0.0412, -0.0123, 0.0012, 0.0696, -0.0342, -0.0405, -0.0195, 0.0199, 0.0248, -0.0011, 0.0493, -0.0534, 0.0065, -0.0007, -0.0559, 0.0206, -0.0382, 0.0273, 0.0109, 0.0598, 0.0129, 0.0286, 0.0497, -0.006, -0.0177, 0.0036, 0.0336, -0.0077, -0.0109, -0.0246, 0.0089, 0.0582, -0.0137, 0.0043, -0.0506, -0.0274, 0.0388, 0.0113, -0.0139, -0.0215, -0.0189, 0.0279, -0.0016, -0.0636, 0.0804, 0.0063, -0.0079, 0.0061, 0.0489, 0.0432, 0.0044, -0.0332, 0.0156, 0.029, 0.0016, -0.034, -0.0126, 0.0255, 0.0185, -0.0409, 0.0175, 0.0373, 0.032, -0.0272, -0.0104, 0.0479, -0.0051, -0.0171, -0.0869, -0.0038, 0.0269, -0.0131, 0.0684, 0.0233, -0.008, 0.0167, -0.0018, 0.003, -0.0389, 0.043, 0.0178, -0.0096, -0.028, 0.0261, -0.0162, 0.0238, -0.0276, -0.0356, -0.0219, -0.0363, 0.0058, 0.0634, 0.0095, -0.0715, 0.0021, -0.0309, -0.0332, 0.062, -0.0319, 0.034, 0.0022, -0.0058, -0.0115, 0.0366, 0.003, 0.0349, 0.0333, 0.0137, 0.0115, -0.0082, 0.0056, 0.0124, 0.0077, -0.0098, 0.0155, -0.0327, 0.0052, -0.023, 0.0321, 0.0379, 0.0705, -0.0445, -0.0519, -0.0106, -0.0418, 0.0039, -0.0517, 0.0523, -0.0196, 0.0171, 0.0041, 0.0189, -0.0062, 0.006, 0.0172, -0.0201, 0.0295, 0.0317, -0.0123, 0.0023, 0.0343, 0.0206, -0.0053, 0.0766, 0.0429, -0.0639, -0.0071, -0.0253, -0.0335, 0.0214, -0.002, 0.0218, 0.0262, -0.0355, 0.0017, -0.0615, -0.0637, 0.0102, -0.0407, -0.0705, 0.0477, 0.017, -0.0475, 0.0183, -0.023, 0.0001, 0.0284, 0.0095, 0.0153, 0.0532, 0.0357, -0.0278, 0.0596, -0.0263, 0.002, -0.0711, -0.0115, -0.0042, 0.061, 0.0142, 0.0219, 0.0011, -0.024, 0.007, 0.0005, 0.005, 0.031, 0.0379, -0.0644, -0.0189, -0.0075, 0.0203, 0.0318, -0.0277, -0.0077, 0.0288, 0.0565, -0.011, 0.0279, 0.0116, 0.0122, 0.0375, -0.0122, -0.0526, -0.029, 0.0133, 0.0098, -0.0079, 0.0342, -0.0054, -0.0294, 0.0622, 0.0361, -0.0456, 0.0415, -0.0323, -0.0541, 0.0229, -0.0014, -0.0344, 0.0255, -0.0133, 0.0042, 0.1, 0.0037, -0.0958, -0.0332, 0.0671, 0.0164, 0.0406, -0.0005, 0.0084, 0.0112, 0.0262, -0.0497, -0.0033, 0.0051, -0.0126, 0.0352, -0.0021, -0.0047, -0.062, 0.0183, 0.0095, 0.0158, 0.0568, -0.0087, -0.0161, 0.01, 0.0158, -0.0609, 0.0208, 0.0615, -0.0321, -0.0237, -0.0484, 0.0297, 0.0453, 0.0769, -0.0577, -0.0346, -0.0262, 0.0042, 0.085, 0.023, 0.027, -0.0031, -0.0579, -0.0658, 0.0081, 0.002, 0.0687, 0.0528, -0.0133, -0.0243, -0.0093, -0.0232, -0.0961, -0.0178, -0.0023, 0.0315, -0.0255, -0.0451, 0.0094, 0.0452, -0.0401, -0.0237, -0.0083, -0.0054, -0.0167, -0.0368, 0.0149, 0.0041, -0.0032, -0.0567, -0.0494, -0.0113, 0.0129, 0.0582, -0.0109, 0.0095, -0.041, 0.0482, 0.0076, -0.002, 0.0286, 0.0206, -0.0392, -0.037, 0.0345, 0.0338, 0.0345, 0.0617, 0.025, -0.0378, -0.0231, 0.0414, -0.0271, 0.0105, -0.0011, -0.0498, 0.0534, -0.03, -0.0041, -0.0019, 0.0303, -0.0228, -0.0114, 0.0242, -0.0377, -0.0573, 0.0053, -0.0346, -0.0866, -0.0595, 0.003, -0.0823, 0.0073, 0.0132, -0.025, -0.0528, -0.0443, 0.0111, -0.0055, -0.0209, -0.0457, 0.0257, -0.039, -0.0022, 0.0802, 0.0255, 0.0043, 0.0561, -0.0341, 0.0376, -0.0018, -0.0121, 0.0521, -0.0399, -0.0293, 0.0328, -0.0818, 0.0128, -0.0431, -0.043, -0.0545, 0.0549, -0.0712, -0.0229, -0.0055, -0.0397, 0.0076, 0.0509, -0.0372, 0.0616, -0.0213, 0.0013, -0.0701, 0.001, 0.0233, -0.0001, 0.0347, 0.0033, -0.012, -0.0392, -0.0019, -0.0309, 0.0091, -0.0467, 0.0305, -0.0708, 0.0187, 0.0199, -0.0725, 0.0104, 0.0541, 0.0307, 0.0489, -0.0167, -0.0493, 0.0407, 0.0017, 0.0167, 0.0066, 0.0231, -0.004, -0.0084, -0.0193, -0.0085, -0.0387, -0.0117, -0.0012, -0.0243, -0.0083, 0.0519, -0.0029, -0.0116, 0.004, -0.0047, -0.0392, -0.0034, 0.0199, 0.031, -0.0279, -0.0105, -0.0304, 0.006, 0.0234, 0.0837, -0.0359, -0.0429, -0.0524, -0.0075, 0.0032, 0.0444, -0.0012, 0.06, -0.0076, -0.0643, -0.0421, -0.0081, 0.016, -0.0144, 0.0316, -0.0686, -0.0443, -0.0472, -0.0033, 0.0113, 0.0578, -0.0007, 0.0498, 0.0028, -0.0425, -0.0449, 0.0246, 0.0208, 0.0091, 0.0564, 0.0459, 0.0222, -0.0058, 0.036, 0.0337, 0.0545, 0.031, 0.0066, 0.0372, 0.031, -0.0196, -0.026, -0.0144, 0.0068, 0.0472, 0.001, 0.0165, -0.0033, -0.01, 0.0666, -0.009, -0.0452, -0.0342, 0.0163, 0.0056, 0.0141, -0.0252, -0.0082, 0.0391, 0.0265, 0.0104, 0.0139, -0.014, -0.0353, -0.0369, 0.0247, -0.0448, 0.0301, -0.0104, 0.0506, -0.0786, -0.0051, -0.0517, -0.0038, -0.0028, -0.0336, 0.0075, -0.0311, 0.0102, -0.0454, 0.0131, 0.0049, 0.0435, -0.0241, 0.0071, 0.0369, 0.0207, -0.0615, -0.0089, -0.0143, 0.0317, -0.0136, 0.0323, -0.0147, 0.0147, -0.0293, 0.0633, 0.0033, 0.026, -0.0392, -0.0215, -0.034, -0.0302, 0.0489, -0.0072, -0.0161, -0.0497, 0.0305, 0.0632, -0.0483, -0.0677, 0.0654, -0.0316, 0.0336, 0.0193, -0.0292, 0.0403, -0.0026, 0.0402, -0.0435, 0.0503, -0.0172, -0.05, -0.0402, 0.0206, 0.0207, 0.0457, -0.0504, -0.0371, -0.0216, -0.0252, 0.033, -0.0294, -0.0176, -0.0079, -0.0703, 0.0109, 0.0237, 0.0283, 0.0189, 0.0326, 0.0636, 0.0162, 0.0786, -0.055, -0.0457, 0.0264, -0.0342, -0.0214, -0.0258, -0.0646], "scores": [0.5565, 0.5818, 0.6007, 0.6887], "xy": [-0.0182, -0.4372]}, {"text": "Yıllık iznim kaç gün?", "vec": [0.0237, 0.0039, -0.1565, 0.014, 0.0444, -0.0042, -0.0552, 0.0284, -0.0457, 0.0087, -0.0637, 0.0206, 0.0927, 0.0206, 0.0334, -0.0328, -0.0069, -0.0222, -0.037, 0.0257, -0.0131, -0.0428, -0.012, -0.0738, 0.0783, -0.0048, 0.0654, 0.0232, -0.025, 0.025, 0.0434, -0.0209, -0.0643, -0.026, 0.0403, -0.0614, 0.0427, 0.0165, 0.0536, -0.0202, 0.001, 0.041, 0.0629, -0.0111, 0.0607, 0.0337, 0.0445, 0.0491, -0.001, -0.0284, -0.037, -0.0857, 0.0371, -0.0575, 0.0179, -0.0168, 0.0023, 0.0094, 0.011, 0.0058, 0.0532, 0.071, -0.0358, -0.0438, 0.0186, -0.054, -0.0197, 0.0225, 0.021, -0.0359, 0.0121, -0.0435, 0.037, 0.0174, -0.0196, -0.0109, -0.052, -0.0466, 0.0329, -0.0029, -0.0241, -0.0153, 0.1019, 0.0303, 0.0053, 0.0129, 0.0038, -0.0032, -0.0297, 0.0648, 0.0159, 0.0467, 0.0187, -0.0043, -0.0524, 0.0133, -0.0144, 0.0477, 0.0328, -0.0253, -0.0243, -0.0332, -0.0287, 0.006, 0.0537, -0.0148, 0.0044, -0.0234, -0.0063, -0.0423, -0.0275, 0.0282, -0.005, -0.0174, -0.017, -0.0189, 0.0389, -0.0236, 0.0719, -0.0473, -0.0316, -0.0194, -0.0174, -0.0284, 0.0337, 0.0228, -0.0296, 0.0122, 0.0373, -0.0353, 0.0053, 0.046, 0.0428, -0.018, -0.0012, 0.0253, 0.0388, -0.0256, 0.0009, 0.0333, -0.0274, -0.037, 0.008, -0.0131, -0.0258, -0.0227, 0.0092, -0.0385, -0.0477, -0.0262, 0.0006, 0.0168, 0.0159, 0.0397, 0.0632, -0.0855, -0.0373, 0.0018, -0.0012, -0.0086, -0.0027, 0.0069, 0.0286, 0.0208, 0.0384, -0.0208, -0.0339, 0.0316, -0.004, 0.0226, -0.0554, -0.0644, -0.0587, -0.0185, 0.0371, -0.0612, -0.0321, 0.0034, 0.0421, -0.0618, 0.0335, -0.0067, 0.0556, 0.0357, -0.0488, -0.0048, 0.0038, -0.0114, -0.0148, -0.0374, -0.0302, 0.0407, -0.0762, -0.0178, -0.034, 0.0373, 0.0318, -0.0306, 0.0326, -0.0357, 0.022, 0.0043, -0.0293, -0.0244, -0.0861, -0.0038, -0.0552, 0.0407, -0.0339, 0.0624, 0.0245, -0.019, -0.0021, 0.0118, 0.0742, -0.0178, 0.0242, -0.0097, 0.0, 0.0382, -0.0058, 0.044, 0.0209, -0.0217, 0.0262, -0.0003, 0.018, 0.0285, 0.0249, 0.0094, 0.0061, -0.036, 0.0602, -0.0299, 0.0258, -0.005, 0.0386, 0.0629, 0.0173, 0.0004, -0.0142, -0.0222, -0.0307, -0.0238, -0.0156, 0.0584, 0.0169, -0.0312, 0.0256, -0.0281, 0.0133, -0.0314, -0.0046, -0.0339, -0.0006, -0.0869, -0.0096, 0.002, 0.0156, 0.0006, 0.0123, -0.0462, -0.0045, -0.0559, 0.0043, 0.0597, 0.0083, 0.0675, 0.0211, -0.0253, -0.006, 0.0125, 0.0199, 0.0419, -0.0381, 0.0056, -0.0162, -0.0068, 0.0112, 0.0547, -0.0242, 0.0162, -0.0028, 0.0162, 0.0106, 0.0393, 0.0154, -0.004, 0.0073, 0.0094, -0.0342, 0.0528, 0.0063, 0.0548, 0.0037, -0.0041, 0.034, -0.0059, 0.0604, 0.0011, 0.0535, -0.0286, 0.0234, -0.0389, 0.0303, -0.0469, 0.0153, 0.0254, 0.0136, -0.0354, -0.0654, -0.0306, -0.0195, 0.0235, -0.0889, 0.0386, 0.0008, -0.0236, -0.0302, 0.0447, -0.0002, -0.042, 0.0309, -0.0595, 0.0007, 0.0398, -0.0075, 0.0263, 0.0087, -0.04, -0.0339, 0.0446, 0.0539, -0.0346, 0.0101, 0.0102, -0.0642, 0.0145, -0.0645, 0.0692, 0.0338, -0.0031, 0.0057, -0.0405, -0.0018, -0.0214, -0.0097, -0.0422, -0.0052, 0.0331, -0.0698, -0.0026, 0.0151, 0.0015, 0.0331, 0.0195, -0.0321, 0.078, 0.002, 0.0157, 0.0329, 0.0102, 0.037, -0.0209, -0.0373, -0.0117, 0.036, 0.0049, 0.0066, -0.0005, -0.0287, -0.0045, -0.0037, 0.0221, -0.0081, 0.0233, -0.0127, 0.0437, -0.0387, 0.0046, -0.0196, -0.0318, -0.0129, 0.0566, 0.0176, -0.0101, 0.0102, 0.0126, -0.0043, 0.0467, 0.0369, -0.0233, -0.0637, 0.0269, -0.0061, -0.0268, 0.0417, -0.0542, 0.0193, 0.0075, -0.0098, -0.0365, 0.0076, -0.059, -0.0406, 0.0378, 0.0356, -0.0261, 0.0402, 0.0193, 0.0188, 0.0438, 0.0072, -0.0329, -0.0228, -0.0029, 0.0039, 0.0343, -0.0122, -0.0162, 0.0412, 0.0627, -0.0108, -0.0328, -0.0314, 0.0037, 0.0149, 0.0577, 0.0253, -0.0949, 0.0322, -0.0181, 0.0389, 0.0617, -0.0243, -0.0244, -0.0299, -0.0127, -0.0436, 0.0256, 0.0234, 0.004, -0.0037, -0.0381, 0.077, 0.0669, 0.0081, -0.0429, -0.0634, 0.034, 0.0055, 0.0336, 0.0128, 0.043, 0.099, -0.0288, 0.009, 0.0133, -0.004, 0.0406, 0.0776, -0.0277, -0.0185, 0.0019, 0.0178, -0.0699, -0.0072, -0.0084, 0.0339, 0.042, -0.0444, 0.0079, 0.0787, 0.0108, -0.0144, -0.0102, 0.0303, 0.0697, -0.0245, 0.0037, 0.0029, -0.039, -0.0713, -0.0694, -0.0144, -0.0173, 0.0361, -0.006, 0.0116, -0.069, 0.0643, -0.005, 0.0304, -0.0278, 0.0254, -0.0203, 0.0514, 0.0142, 0.0924, 0.0381, 0.0021, -0.0068, -0.0301, -0.0028, 0.0466, -0.0295, -0.043, 0.0036, -0.0742, 0.0038, -0.0473, -0.0317, 0.0484, 0.0242, 0.011, -0.0366, 0.0191, -0.0168, 0.019, 0.0457, -0.0009, -0.0822, -0.0431, 0.0192, -0.0242, 0.0495, -0.0394, -0.0347, 0.0018, -0.0456, 0.0136, 0.0116, -0.0179, -0.0568, -0.0039, 0.0233, 0.0213, 0.0498, -0.0132, 0.0757, 0.0167, -0.0506, 0.0352, 0.0096, 0.0153, 0.0452, -0.0309, -0.0275, -0.0015, -0.0708, 0.0236, -0.0286, -0.0021, -0.0138, 0.0643, -0.0969, 0.0339, 0.002, -0.0159, -0.0127, 0.007, 0.017, 0.0733, -0.0099, 0.0144, -0.0006, -0.0052, -0.0003, 0.0108, 0.0074, -0.0219, 0.0072, -0.0363, -0.0283, -0.0022, 0.0406, 0.0254, 0.0141, -0.0814, 0.0141, -0.0261, -0.0183, 0.0438, 0.059, 0.0242, 0.0214, 0.0305, 0.0144, 0.0539, -0.0073, -0.0203, -0.0149, 0.0095, 0.0191, -0.0104, 0.0395, 0.0367, -0.0222, -0.0074, -0.0027, 0.0155, 0.0058, -0.0088, -0.038, -0.0306, 0.0373, -0.019, -0.0233, -0.0072, -0.0361, -0.0361, -0.0106, -0.0113, -0.0547, 0.0126, 0.0106, 0.0934, -0.016, -0.0637, -0.0437, 0.0047, -0.0267, 0.0274, 0.0133, 0.0351, -0.0312, -0.0566, -0.0149, 0.0354, 0.0278, -0.0348, -0.0111, -0.0792, -0.0248, -0.0466, -0.0149, 0.0639, 0.0618, 0.0113, 0.0627, 0.0861, 0.0025, -0.0114, 0.0729, 0.0236, -0.0512, 0.0307, 0.0124, 0.0252, -0.0255, 0.0447, 0.0375, -0.0181, 0.0215, 0.0393, -0.008, 0.0467, -0.0018, -0.0383, -0.0419, -0.0297, 0.0118, 0.0019, 0.0159, -0.0058, 0.0217, 0.009, 0.0258, -0.0527, 0.0096, -0.0199, 0.0181, -0.0198, -0.0259, 0.0145, 0.0188, 0.0656, 0.0167, -0.0229, -0.0423, -0.0379, -0.0112, 0.023, -0.0245, -0.0025, -0.0317, 0.0615, -0.0739, 0.033, -0.0642, 0.0228, -0.0737, -0.0149, -0.0184, 0.0402, -0.0477, -0.0345, 0.0404, -0.0283, 0.0411, -0.0068, -0.0234, 0.0298, 0.0313, -0.0681, 0.0212, -0.0178, 0.0081, 0.0193, 0.0224, -0.0285, 0.0246, -0.0254, 0.0958, 0.0202, 0.0528, -0.0077, -0.0074, -0.0193, 0.0038, 0.0398, -0.0429, 0.0243, -0.0498, 0.0282, -0.0151, -0.0273, -0.0464, 0.017, -0.0218, 0.0048, 0.0362, -0.0449, 0.0099, 0.0212, -0.0123, -0.0592, 0.0246, -0.0047, -0.0158, -0.0491, 0.0229, 0.0015, 0.021, -0.0066, 0.0132, 0.0017, 0.0185, -0.0021, -0.0136, 0.0311, 0.0423, -0.0808, 0.0215, 0.0157, -0.0208, -0.057, 0.0263, 0.0848, 0.009, 0.0456, -0.0593, -0.046, -0.0003, -0.0691, -0.0838, -0.028, -0.0533], "scores": [0.6757, 0.686, 0.6549, 0.695], "xy": [0.1923, -0.2826]}, {"text": "İzin talebimi nereden yapmalıyım?", "vec": [-0.0046, 0.0086, -0.1615, 0.0103, 0.0476, -0.0294, -0.0074, -0.0122, -0.0507, 0.0208, -0.0353, 0.0194, 0.0686, 0.0263, -0.037, -0.0152, 0.0309, 0.0074, -0.0546, 0.0267, -0.0535, 0.0192, -0.0231, -0.0465, 0.0777, -0.0234, -0.0064, 0.0272, -0.0577, 0.0732, -0.0094, -0.0664, -0.0448, -0.0336, 0.0102, -0.0891, 0.057, 0.0506, 0.0519, -0.0086, 0.0024, -0.0074, -0.0422, -0.0503, 0.1238, 0.0102, 0.0265, 0.0347, 0.0141, -0.0415, -0.0096, -0.0843, 0.0339, -0.0422, -0.0076, -0.062, -0.0095, -0.028, -0.0115, -0.0167, 0.0618, 0.0878, -0.0538, -0.0264, 0.043, -0.0388, -0.0692, 0.0534, 0.0466, -0.0371, 0.0279, -0.0083, 0.0478, 0.0143, 0.0341, -0.0087, 0.0035, -0.0274, 0.0241, 0.037, -0.0281, 0.0027, 0.0463, 0.0267, 0.0487, -0.0074, 0.027, 0.0046, -0.0526, 0.0591, 0.0392, -0.019, 0.0175, 0.0103, 0.0052, 0.0001, -0.0205, -0.0055, -0.0076, -0.0092, -0.0388, -0.0077, 0.0041, -0.0494, 0.0786, 0.0267, -0.0194, -0.0299, 0.0138, 0.013, -0.0202, -0.0205, -0.0089, -0.0136, -0.0311, 0.0318, 0.0417, -0.0332, 0.0053, -0.0015, -0.0026, -0.0128, -0.0311, -0.0084, 0.0034, 0.0335, -0.0363, 0.0217, -0.0008, -0.0412, -0.0079, -0.0026, 0.0194, -0.0443, 0.0057, 0.0494, 0.0244, -0.0311, 0.0043, -0.0111, -0.0369, -0.0213, 0.0376, 0.0019, -0.0012, -0.0483, 0.0159, -0.0053, -0.0684, -0.0004, 0.0115, 0.0229, -0.0184, 0.0431, 0.0091, -0.0526, -0.0418, 0.0207, 0.0419, 0.0, 0.0204, -0.0422, -0.0095, 0.041, 0.0279, 0.004, -0.0319, 0.0106, 0.0069, 0.0186, -0.0507, -0.0384, -0.037, 0.0182, 0.0125, -0.0144, -0.0529, 0.0297, -0.019, -0.0301, -0.0034, -0.0263, 0.0574, 0.0004, -0.0404, 0.006, -0.0111, 0.0059, 0.0058, -0.0636, 0.0198, 0.0763, -0.0887, -0.0254, -0.0328, -0.0245, 0.0777, 0.0339, 0.019, -0.0042, 0.0463, -0.0062, -0.0354, -0.011, -0.0489, 0.0387, 0.0227, 0.0432, 0.0145, 0.0674, 0.0193, 0.0015, 0.0108, -0.011, 0.0218, -0.0061, -0.001, -0.027, 0.0307, 0.002, -0.0065, 0.0112, -0.0052, -0.0418, 0.0531, -0.0218, -0.0022, -0.006, 0.0002, 0.0423, 0.0048, -0.023, 0.0651, -0.0048, 0.0188, -0.0056, 0.0662, 0.086, 0.0037, -0.05, 0.0123, -0.0026, -0.0048, -0.0278, -0.0134, 0.0344, 0.0473, -0.0929, 0.0128, 0.0324, -0.0298, -0.0043, 0.0514, -0.0186, -0.0022, -0.0552, -0.0148, -0.0314, 0.0615, -0.0022, 0.0107, -0.0244, -0.0079, -0.0535, -0.0195, -0.0066, -0.0121, 0.0335, -0.0123, 0.0252, -0.0032, -0.0056, -0.0199, 0.0322, -0.0145, -0.0299, -0.0081, -0.009, -0.0193, 0.0497, 0.007, 0.0041, 0.0017, 0.0146, -0.0409, -0.005, -0.0185, -0.0235, 0.0492, 0.0298, -0.0059, -0.0112, -0.0182, 0.0195, 0.0351, -0.0379, 0.0489, -0.0492, 0.0003, -0.0512, 0.0152, 0.0103, 0.0425, -0.0254, 0.0763, -0.0261, -0.0108, 0.045, 0.039, 0.0, -0.1044, -0.0087, -0.0126, 0.0075, -0.0269, 0.0564, -0.0002, 0.041, 0.0449, 0.0483, 0.0605, -0.0142, 0.0004, -0.0374, 0.0065, 0.0222, -0.0285, 0.0807, -0.0007, -0.0507, -0.0088, 0.031, 0.0513, -0.01, -0.0035, 0.0463, 0.0066, -0.0012, -0.0045, 0.0694, -0.0278, -0.034, -0.0181, -0.0807, -0.0077, -0.0786, -0.0491, 0.0012, 0.0003, 0.0557, -0.0446, 0.0069, -0.0006, -0.0259, 0.0497, -0.0142, -0.0211, 0.0601, 0.0171, -0.0114, 0.0462, -0.0362, -0.0071, -0.0007, -0.0265, 0.0007, 0.0258, 0.0264, 0.0107, -0.0158, -0.0275, -0.0066, -0.0667, -0.0163, 0.0134, 0.0553, -0.044, -0.0084, -0.0528, 0.0259, -0.0387, 0.0099, 0.0125, -0.0045, 0.0442, -0.0014, 0.005, -0.0257, -0.0321, 0.0082, 0.0004, -0.0113, -0.0145, -0.0024, 0.019, -0.0603, 0.0386, 0.0117, 0.0086, 0.0294, -0.0345, -0.0075, -0.0046, -0.0547, -0.0287, 0.0334, -0.0108, -0.0147, -0.0017, 0.0016, -0.002, 0.0476, -0.0059, 0.0093, -0.0069, 0.0152, 0.0305, -0.0002, -0.0028, -0.0031, 0.0142, 0.0739, -0.0329, -0.0099, 0.0347, 0.0139, 0.0217, 0.0415, -0.0415, -0.0783, -0.0269, 0.0298, 0.0137, 0.0193, 0.0244, -0.0401, -0.0235, 0.066, -0.0104, 0.0586, 0.0024, 0.0105, -0.0145, -0.031, 0.0008, 0.047, -0.0239, -0.0677, -0.0405, 0.0024, -0.0035, 0.026, 0.0449, 0.0282, 0.0711, -0.0461, 0.0185, 0.0332, 0.0367, 0.0426, 0.0886, 0.0062, -0.0287, 0.0037, -0.0195, -0.0639, 0.0445, 0.0169, 0.0523, 0.0427, -0.0218, 0.0039, 0.0524, 0.0203, -0.0498, -0.02, 0.0106, 0.005, 0.0043, 0.077, -0.0165, -0.0444, -0.0536, -0.0461, -0.0165, 0.0381, 0.0248, -0.0061, 0.0263, -0.0415, 0.0031, -0.0039, 0.0343, -0.0019, -0.0208, -0.0458, 0.0339, -0.0255, 0.0744, 0.0167, -0.0178, 0.011, -0.0303, -0.0237, 0.0697, -0.0566, -0.0813, 0.0103, -0.1178, 0.0174, -0.0676, -0.0152, 0.0336, 0.0378, 0.0228, -0.0301, 0.0462, 0.0187, -0.0186, 0.0739, -0.0232, -0.0469, 0.0003, -0.0595, -0.0307, -0.015, -0.0003, -0.0026, 0.0049, -0.0348, 0.0162, -0.0516, -0.04, 0.0136, 0.0375, 0.0051, 0.0009, 0.0292, 0.0214, 0.0335, 0.0107, -0.0043, 0.0413, 0.0288, -0.038, -0.0125, -0.0078, -0.0091, -0.0364, 0.0033, 0.078, -0.0091, -0.0492, -0.0543, 0.0302, -0.0316, -0.0129, 0.0069, -0.0257, -0.0119, 0.0404, -0.0246, 0.0755, -0.0163, -0.0122, -0.0135, 0.006, 0.0427, 0.0132, -0.0235, 0.0421, -0.015, -0.0336, -0.0169, -0.0067, 0.0152, 0.0102, 0.0205, -0.0556, -0.0287, 0.0389, -0.0505, 0.04, 0.0587, 0.0149, -0.0381, -0.0019, -0.0682, 0.0556, 0.0008, -0.0272, 0.0232, -0.0089, 0.0171, -0.0191, 0.0533, 0.0147, 0.0103, -0.0471, -0.0183, 0.003, -0.0346, 0.0115, -0.0111, 0.0232, 0.0537, -0.0187, -0.0034, 0.0295, -0.0001, 0.004, -0.0506, -0.0059, -0.0401, -0.0293, 0.0153, 0.0868, 0.0034, -0.0465, -0.029, 0.0256, -0.0556, 0.0657, 0.039, 0.0405, 0.005, -0.0512, 0.0102, -0.008, 0.026, -0.0281, 0.0028, -0.0736, -0.0252, -0.0501, -0.0098, 0.0349, 0.0631, 0.018, 0.0673, 0.0307, 0.0147, 0.0116, 0.0293, 0.027, 0.0135, 0.0255, 0.0197, 0.0259, -0.0243, 0.0482, 0.0768, 0.0887, 0.0024, 0.0154, -0.0303, 0.05, -0.0193, -0.0506, -0.0211, 0.0165, 0.0426, 0.0017, 0.0222, -0.0059, -0.0018, -0.003, 0.0154, -0.0455, -0.038, -0.0217, 0.0089, 0.0008, -0.0525, 0.0157, 0.0583, 0.0508, 0.0323, -0.0155, -0.07, -0.0038, -0.0152, 0.0368, -0.0305, 0.0092, -0.0477, 0.0613, -0.0303, 0.0026, -0.0445, -0.0172, -0.0487, -0.0386, -0.0277, -0.0079, 0.0116, -0.0205, -0.0173, -0.0589, 0.0175, -0.0234, 0.0364, 0.0317, 0.0283, -0.0904, -0.0329, -0.0047, 0.0149, 0.0267, 0.0029, -0.0111, 0.0148, -0.0506, 0.1085, 0.0389, -0.0145, -0.0233, -0.0432, -0.0487, -0.003, 0.0521, 0.0289, 0.0127, -0.0245, 0.0385, -0.0302, -0.0498, -0.0237, 0.0443, 0.0066, 0.0043, 0.0372, -0.0321, -0.0113, -0.0573, 0.0081, -0.0117, 0.0534, -0.0007, -0.0135, -0.0425, 0.0179, 0.0406, 0.0379, -0.005, 0.0348, -0.0182, 0.0164, -0.0032, 0.0248, -0.0186, 0.0063, -0.0952, 0.0549, 0.0405, -0.0401, -0.0141, 0.0834, 0.0903, 0.0033, 0.0659, -0.0671, 0.0037, -0.0324, -0.0053, 0.007, -0.061, -0.0318], "scores": [0.6346, 0.7305, 0.6649, 0.6391], "xy": [0.033, 0.0976]}, {"text": "Şirket otoparkı ücretli mi?", "vec": [-0.0244, 0.0127, -0.1701, -0.0335, 0.0526, -0.0203, 0.0245, -0.0083, -0.0149, 0.0195, -0.0089, 0.0183, 0.056, -0.0112, 0.0081, -0.0572, 0.0215, -0.0276, -0.0671, -0.0051, -0.0114, 0.0204, -0.0237, -0.003, 0.0695, -0.0077, 0.0051, 0.071, -0.0073, -0.0142, 0.036, -0.0856, -0.0068, -0.0076, 0.0055, -0.0654, 0.1007, -0.017, 0.0381, -0.0024, 0.0267, -0.0254, 0.0156, -0.0392, 0.1075, -0.0301, 0.0326, 0.0286, 0.0443, 0.0363, -0.0237, -0.0424, 0.006, -0.0499, -0.0265, 0.0297, -0.008, -0.0382, 0.0151, -0.029, 0.0247, 0.0443, -0.0483, 0.0261, 0.0153, -0.0447, -0.0463, 0.0014, 0.0062, -0.0097, -0.0001, -0.0565, 0.0238, -0.0309, -0.0089, -0.0166, -0.0386, -0.0555, -0.0475, 0.0044, 0.0266, 0.0005, 0.0298, 0.0462, 0.0439, -0.001, 0.0298, -0.0201, -0.0605, 0.0341, 0.0063, 0.0358, 0.0054, 0.0246, -0.012, -0.0098, -0.0163, 0.054, -0.0345, -0.0022, -0.0343, -0.0094, 0.0514, -0.0069, 0.0289, 0.0444, -0.0065, 0.0058, 0.0155, -0.0048, -0.0654, 0.0185, -0.0361, -0.066, 0.0338, 0.0332, 0.0014, -0.0501, 0.0044, -0.0008, -0.0729, -0.0331, 0.013, 0.0085, 0.028, 0.0782, -0.0378, 0.0424, 0.0347, 0.0042, 0.0058, -0.0308, -0.0214, -0.0311, 0.018, 0.03, -0.0267, -0.0014, 0.0429, 0.0266, 0.0032, -0.0198, 0.046, -0.0177, -0.0381, -0.0328, 0.056, -0.0485, -0.078, 0.0276, -0.008, 0.0253, -0.0244, 0.0755, -0.0355, -0.0708, -0.0252, 0.0313, 0.0698, -0.0272, 0.0014, 0.0366, -0.0091, 0.0404, -0.0106, 0.0029, 0.0131, 0.0274, 0.0219, 0.0247, -0.0498, -0.0282, -0.0439, -0.0114, -0.0128, -0.0052, -0.0783, 0.0214, -0.0011, -0.0144, 0.0066, -0.03, 0.0392, 0.0135, -0.0845, -0.0038, 0.0343, -0.0113, -0.0325, -0.0046, 0.0128, -0.0025, -0.0549, -0.0527, -0.0459, -0.0525, 0.0818, 0.0366, -0.0007, -0.0625, 0.0201, -0.0174, -0.0096, -0.0046, -0.0889, 0.0544, -0.0123, 0.0779, 0.0267, 0.0362, 0.0195, -0.0181, 0.0105, -0.0191, 0.0098, -0.046, 0.0135, -0.0423, -0.0355, 0.0048, 0.0453, -0.0081, 0.022, -0.0181, 0.0719, 0.0618, -0.0043, 0.0063, -0.052, 0.0573, -0.0012, -0.0322, 0.0948, 0.0026, 0.0374, 0.0301, 0.0464, 0.037, -0.0391, -0.0308, 0.0126, 0.015, -0.0158, -0.0715, -0.0447, 0.032, 0.0085, -0.0555, 0.0254, 0.0148, -0.0408, 0.0507, 0.0357, 0.01, -0.0084, -0.0248, -0.0537, -0.0036, 0.0102, 0.0021, 0.0039, -0.0655, -0.0165, -0.0671, 0.0277, -0.0362, -0.0541, 0.022, 0.007, 0.0184, 0.0309, 0.045, -0.0096, 0.0405, -0.024, -0.0195, 0.0225, -0.0234, -0.0501, 0.0619, 0.014, -0.0352, -0.0155, 0.0013, 0.0021, 0.0098, -0.0157, 0.0246, 0.0569, -0.039, 0.038, 0.0225, -0.0124, 0.0107, 0.0286, -0.0165, 0.0332, -0.004, -0.0044, -0.0056, 0.0183, -0.0216, 0.0297, -0.0393, 0.0529, -0.0138, -0.0036, 0.0091, 0.0363, -0.0106, -0.093, 0.0286, -0.0053, -0.0076, -0.0431, 0.0335, -0.015, -0.0076, 0.0565, 0.0263, 0.0323, -0.0344, -0.0286, -0.0115, 0.0294, 0.0288, -0.0242, 0.0549, 0.0228, -0.0264, 0.0139, 0.0349, 0.0143, -0.0183, -0.0264, 0.0106, 0.0439, -0.0042, -0.0105, 0.0366, -0.0109, 0.0032, 0.0063, -0.0873, 0.0148, -0.0417, -0.0135, 0.0033, 0.0329, 0.0061, -0.023, 0.0095, 0.0117, -0.0113, 0.025, 0.0045, 0.008, 0.045, 0.0504, -0.0063, 0.0358, -0.0496, 0.0265, -0.0349, 0.0431, 0.0176, 0.0466, 0.0116, 0.0223, 0.0271, -0.0369, -0.025, -0.0211, -0.0091, 0.0443, 0.0125, -0.0574, 0.0096, -0.037, 0.0068, -0.0117, -0.0442, 0.0598, 0.023, 0.0485, -0.013, 0.02, -0.0179, 0.0109, 0.0437, 0.0205, -0.0579, -0.0067, 0.0103, 0.0263, -0.0075, -0.0018, -0.0236, 0.0029, 0.0638, -0.0152, -0.0581, 0.0166, -0.0136, -0.0111, 0.0266, -0.0166, -0.0271, -0.0081, 0.0281, 0.0007, 0.0349, 0.0369, -0.0212, 0.0167, 0.0528, 0.0279, -0.0002, 0.018, -0.0053, 0.024, 0.076, -0.0232, -0.0135, 0.0125, 0.0454, 0.0165, -0.002, -0.0186, -0.0399, 0.0174, 0.0516, 0.0048, 0.0121, 0.0356, -0.039, -0.0443, -0.0153, -0.0206, 0.0477, 0.0161, -0.03, -0.0377, -0.0436, -0.0275, 0.0463, 0.0258, -0.0227, -0.0237, -0.0177, -0.0388, 0.0448, 0.0299, 0.016, 0.0461, -0.0223, -0.0621, 0.0149, -0.0134, 0.0553, 0.0485, -0.0084, 0.0013, 0.0487, 0.01, -0.0535, 0.0299, -0.0248, 0.0334, 0.0396, -0.0348, 0.017, 0.0384, -0.0162, -0.0489, -0.0323, -0.0076, -0.0212, 0.007, 0.0607, -0.0001, -0.0521, -0.0687, -0.0709, 0.0012, 0.0317, 0.055, -0.0029, -0.0049, -0.0544, 0.0032, 0.0728, 0.04, 0.0218, -0.0338, -0.0018, -0.0136, 0.0469, 0.0302, -0.0109, 0.0624, -0.0263, -0.0368, 0.0026, 0.0662, -0.0983, -0.0093, -0.0105, -0.09, 0.0025, -0.0092, -0.018, 0.0249, -0.0107, -0.0008, -0.0433, 0.0419, -0.0278, 0.0235, 0.058, 0.0582, -0.0688, -0.0295, -0.0283, -0.0315, 0.0177, 0.0132, -0.0009, 0.0398, 0.0105, 0.0473, -0.0524, -0.0464, 0.0186, 0.0172, -0.0105, -0.0105, 0.0752, 0.0466, 0.0282, -0.0027, -0.0179, 0.037, -0.0039, 0.0115, 0.041, -0.047, 0.0206, -0.0258, -0.0215, 0.0666, -0.0068, -0.0766, -0.0623, 0.0266, -0.0573, 0.0083, -0.0043, 0.0238, -0.0133, 0.0522, -0.0393, 0.053, -0.0493, 0.0486, -0.0344, -0.0137, -0.0284, 0.0079, -0.015, -0.0268, -0.0222, -0.0465, -0.0265, -0.0153, 0.0512, 0.0051, 0.0207, -0.0795, -0.0351, 0.0246, -0.0372, 0.0381, 0.0396, 0.0136, -0.0076, -0.0424, 0.0064, 0.002, 0.0116, -0.0141, 0.0115, -0.0199, 0.0119, 0.0197, 0.0443, 0.0161, 0.0103, -0.0391, 0.006, -0.026, -0.0067, 0.0349, -0.0234, -0.0293, -0.0238, -0.0297, 0.0017, 0.054, -0.0501, 0.0164, -0.0453, -0.0187, -0.0183, -0.0062, 0.0245, 0.0596, -0.0068, -0.0396, -0.017, 0.0023, -0.0413, 0.0772, 0.0123, 0.041, -0.0245, -0.0121, -0.0439, -0.0208, 0.0023, -0.0019, -0.0118, -0.0664, -0.0639, -0.0352, 0.0311, -0.006, 0.0181, -0.0535, 0.0912, 0.0539, -0.0087, 0.0349, 0.0155, -0.0011, -0.0192, 0.0562, 0.0516, 0.0163, -0.0339, 0.0856, 0.0658, 0.0208, 0.0142, 0.0089, -0.0125, 0.0759, -0.0036, -0.0251, -0.0583, -0.0424, -0.0026, -0.006, 0.0533, 0.0068, -0.067, -0.0113, -0.0001, -0.1166, -0.0182, 0.0473, -0.0164, 0.0098, -0.0044, 0.0405, 0.0554, 0.0745, 0.0521, 0.0081, -0.0143, -0.0507, -0.0302, 0.0286, -0.0156, 0.0003, -0.006, 0.04, -0.0174, 0.056, -0.039, 0.0285, -0.0536, -0.0267, -0.0253, 0.0128, 0.0198, -0.0396, 0.0131, -0.0638, 0.0179, 0.0066, 0.0232, 0.0027, 0.0302, -0.0332, 0.017, -0.0046, 0.0028, 0.0081, 0.0217, 0.0283, 0.053, -0.0721, 0.0843, 0.0211, 0.0229, -0.0348, 0.0052, -0.0424, 0.0082, 0.0213, 0.0228, -0.0224, -0.0435, -0.0094, 0.0236, -0.0334, -0.0228, 0.0636, -0.0161, -0.0062, 0.005, -0.0553, 0.0262, -0.0101, 0.0258, -0.0106, 0.0734, -0.0513, -0.055, -0.0124, -0.0006, 0.0313, 0.0204, -0.0194, -0.0045, -0.0328, 0.0034, 0.0233, -0.0055, 0.0276, 0.0171, -0.0722, 0.0337, 0.0324, 0.005, 0.0002, 0.0133, 0.1121, -0.0096, 0.0282, -0.0091, 0.0046, -0.0135, -0.0354, -0.0129, -0.0436, -0.0676], "scores": [0.6399, 0.6589, 0.6694, 0.6868], "xy": [-0.0691, 0.2034]}, {"text": "How many days of paternity leave do fathers get?", "vec": [-0.0031, 0.0456, -0.1745, -0.035, -0.0082, -0.0123, -0.0295, -0.0145, 0.0576, -0.0593, -0.0346, -0.0048, 0.0097, -0.0219, 0.0434, 0.0223, 0.0377, -0.0361, -0.0196, 0.0131, -0.0073, 0.0128, -0.0977, 0.0232, 0.0737, 0.0518, -0.0098, 0.005, -0.0526, 0.0828, 0.036, 0.0895, 0.0054, -0.0638, -0.0278, -0.044, 0.0243, -0.028, 0.0054, -0.0904, 0.0552, -0.0093, -0.0155, -0.0509, 0.0565, -0.0439, -0.0276, 0.0458, 0.0193, -0.0131, -0.0219, -0.0492, 0.0135, 0.0089, 0.0202, 0.0118, -0.0228, -0.0958, 0.0241, 0.0242, 0.1285, 0.0443, -0.0653, 0.1123, 0.0394, -0.042, -0.0032, 0.0746, 0.0175, 0.0007, 0.0174, -0.0609, 0.0435, -0.0041, -0.0182, 0.0245, -0.0504, -0.015, 0.0002, 0.005, 0.1054, 0.0008, 0.0526, -0.0251, 0.0385, -0.012, 0.0044, -0.0272, -0.0013, 0.0802, 0.006, 0.0338, -0.0402, 0.0472, 0.006, -0.0039, -0.0102, 0.025, -0.0073, -0.0468, -0.0395, -0.0198, -0.0287, -0.0277, 0.0223, 0.0224, -0.0206, 0.0134, 0.0411, -0.037, -0.0184, -0.0174, -0.0227, 0.0159, 0.0151, 0.0136, -0.0149, -0.0854, 0.0278, 0.0342, -0.0357, 0.0051, 0.0107, 0.0563, 0.0343, 0.0535, 0.0005, 0.0094, -0.0048, -0.0077, -0.0262, -0.0001, -0.0205, -0.0276, 0.0209, -0.004, 0.0282, 0.0283, -0.0301, 0.001, 0.0299, -0.0099, 0.014, -0.0277, -0.0267, -0.0163, 0.0465, -0.0444, -0.031, -0.006, 0.0161, -0.0228, 0.0216, 0.0173, 0.0228, -0.042, -0.0622, 0.0423, 0.0245, 0.0629, 0.04, -0.0258, -0.0564, 0.0355, -0.0371, -0.0297, -0.0295, 0.0201, -0.0181, 0.0213, -0.0039, -0.0684, -0.0074, -0.0324, -0.0094, -0.0065, -0.0079, -0.0698, 0.055, -0.0102, 0.0228, -0.0393, 0.0186, 0.0252, -0.0019, -0.0016, -0.0079, -0.0662, -0.076, -0.0507, 0.045, 0.0203, -0.0512, 0.0099, -0.0554, -0.0278, -0.0028, -0.0134, -0.0038, -0.0271, -0.0293, -0.0226, 0.018, -0.0103, -0.0127, 0.0303, 0.0245, 0.0264, -0.0154, 0.0068, 0.0633, -0.0322, -0.0222, 0.0383, 0.0119, -0.032, 0.0035, 0.0337, -0.0054, 0.0362, 0.0088, 0.0281, 0.0308, 0.0212, 0.0083, 0.0411, -0.0098, 0.0444, -0.0744, 0.0147, 0.0183, -0.0839, 0.0423, 0.0445, -0.0324, -0.019, 0.0261, 0.0308, -0.0048, -0.0179, 0.0376, 0.0257, -0.0126, 0.0473, -0.061, 0.0296, 0.0188, -0.0461, 0.0148, -0.0045, 0.0376, 0.0001, 0.0356, 0.0297, 0.0102, -0.0276, -0.0283, 0.0379, -0.0546, -0.0451, -0.0079, -0.0029, 0.0649, -0.0386, -0.0229, -0.0513, -0.0202, -0.0089, -0.0304, -0.0507, -0.0319, 0.0706, 0.0432, 0.0848, 0.0181, -0.0137, 0.0258, -0.0393, -0.0438, 0.0654, 0.0061, -0.0285, 0.0036, -0.0401, 0.0086, 0.0735, 0.0151, -0.0187, -0.0164, 0.012, 0.033, 0.0167, 0.0166, 0.0386, 0.0656, 0.0425, 0.0841, -0.0186, 0.0158, -0.0381, 0.0764, 0.0235, 0.0156, 0.0563, -0.0265, -0.0671, 0.0382, -0.0583, 0.0497, -0.0254, -0.0159, 0.001, -0.0133, 0.0411, -0.0249, 0.0528, 0.028, 0.0408, 0.0014, 0.0639, 0.0288, -0.0251, 0.0168, -0.0034, -0.0121, 0.0519, -0.061, 0.0027, -0.0455, 0.0139, 0.0237, 0.0559, 0.0297, -0.0316, -0.0394, 0.0198, -0.0109, 0.0257, -0.0105, 0.0387, 0.0091, -0.0181, 0.0316, -0.0158, 0.0359, 0.0018, -0.034, -0.0001, 0.0138, 0.044, -0.0336, -0.0205, -0.0117, 0.0189, 0.0585, 0.0108, 0.005, 0.0401, 0.0263, 0.0187, 0.0282, 0.0331, -0.0354, -0.0227, 0.0077, 0.0311, 0.0247, 0.0056, 0.0413, -0.0083, -0.0742, -0.0173, 0.0169, 0.0555, 0.0041, -0.0142, -0.0697, -0.085, 0.0007, 0.0035, -0.0323, -0.001, -0.0226, -0.0304, 0.0141, -0.0189, 0.0212, 0.0015, -0.026, -0.0178, -0.0104, -0.0365, -0.0701, -0.0396, 0.0382, -0.0326, 0.0722, 0.0319, 0.0364, 0.0509, -0.0131, 0.0001, -0.0184, 0.0156, 0.014, 0.0931, -0.0582, -0.0243, 0.0116, 0.0104, -0.034, 0.0063, 0.0036, 0.0122, 0.0562, -0.0025, 0.0617, 0.0019, -0.0046, 0.0005, 0.0711, 0.0198, -0.0266, -0.0121, 0.0096, 0.0902, -0.0136, -0.0037, -0.0144, -0.0356, -0.0165, 0.0348, 0.0113, -0.0545, -0.0019, 0.03, -0.0597, 0.0391, 0.0086, 0.0478, -0.0024, -0.0098, 0.0333, -0.0024, 0.0187, 0.0329, 0.0689, -0.1043, 0.0343, -0.0101, -0.0093, 0.0132, 0.0386, -0.019, 0.0594, -0.049, -0.0313, 0.0092, -0.0107, 0.0627, 0.0236, 0.0213, 0.0117, 0.0182, -0.0659, 0.0009, 0.029, 0.0027, -0.0004, 0.0529, -0.0323, 0.0052, 0.0483, -0.0326, -0.0641, -0.0404, 0.0127, 0.0064, 0.0475, 0.0243, 0.0456, -0.0105, -0.0557, -0.0064, 0.0137, 0.0051, 0.0225, -0.0265, 0.0214, -0.0381, -0.0036, -0.016, 0.0046, -0.0475, 0.031, -0.0249, -0.0214, 0.0112, -0.0187, -0.0571, 0.0332, 0.0226, 0.0714, -0.0401, -0.0011, 0.041, 0.0215, -0.0443, 0.0035, -0.0002, -0.0359, -0.0078, 0.0289, -0.0082, 0.0174, -0.0339, 0.0101, 0.0358, -0.0343, 0.0253, 0.0558, -0.0258, 0.0346, -0.0236, -0.043, -0.0272, -0.0814, -0.0163, 0.0416, 0.0174, -0.0147, 0.0071, -0.0114, -0.0027, 0.011, 0.0005, -0.0212, 0.0114, 0.0321, -0.0363, -0.0564, -0.0657, 0.0093, -0.0032, -0.0159, 0.0149, -0.0427, 0.0144, -0.0041, -0.0368, 0.0071, -0.0808, -0.0061, -0.0322, 0.002, 0.0012, 0.0081, 0.0131, -0.0077, 0.0032, 0.0208, 0.0575, 0.0416, -0.0043, -0.0146, -0.01, -0.0207, -0.0443, -0.0509, 0.024, 0.0751, -0.0749, -0.0235, 0.0176, -0.0173, -0.0382, 0.0201, -0.0376, -0.0719, -0.0313, 0.0388, -0.0224, 0.0374, 0.0559, -0.0139, 0.0102, 0.0013, -0.0086, 0.021, -0.0573, 0.0101, -0.0051, 0.006, -0.0152, 0.0062, 0.0036, -0.0489, -0.0751, -0.0046, -0.0549, 0.031, 0.0218, 0.0274, -0.0399, 0.0565, 0.0508, -0.0352, 0.0343, -0.0064, -0.0414, 0.0114, -0.013, -0.0439, 0.001, 0.0182, 0.0019, 0.0436, 0.0297, -0.0026, -0.02, -0.0554, -0.0434, 0.0755, 0.0059, 0.0108, 0.0427, -0.0003, -0.0513, -0.0112, 0.0402, 0.0143, 0.008, -0.0878, -0.0193, 0.0244, -0.0075, 0.0098, 0.0025, -0.0443, 0.0386, 0.0194, -0.0638, 0.0042, 0.0176, 0.0529, -0.0133, 0.0173, -0.0128, 0.021, -0.005, 0.0976, 0.0541, 0.0101, 0.0672, 0.0423, -0.0392, 0.0348, -0.0597, -0.0646, -0.0381, 0.0011, 0.0414, -0.0299, 0.0272, 0.0147, 0.0001, -0.0272, -0.0583, -0.0591, -0.0194, 0.0416, 0.0269, 0.0295, 0.0181, -0.0235, 0.0355, 0.0222, -0.0098, -0.032, -0.0048, -0.0108, -0.0073, 0.0473, -0.0236, 0.0018, -0.0214, 0.0062, -0.0239, 0.0064, 0.0061, 0.0218, -0.0005, 0.0005, -0.0315, 0.0222, -0.025, 0.0084, -0.0316, 0.0102, 0.0412, 0.02, 0.0356, -0.0063, 0.0337, 0.0128, -0.0356, -0.0231, -0.0646, -0.0319, -0.0207, 0.0175, 0.022, -0.0552, 0.0655, 0.0473, 0.0125, -0.0179, -0.054, -0.0074, -0.0433, 0.0296, -0.032, -0.0172, -0.0612, -0.0111, 0.0012, 0.0153, -0.0188, -0.0054, -0.0205, 0.014, -0.0274, -0.0179, 0.016, -0.0081, -0.0001, -0.0648, 0.0175, -0.0416, -0.0047, -0.0176, -0.0075, 0.0384, -0.0338, -0.0001, 0.0372, -0.0397, 0.0345, 0.0404, 0.0236, -0.0242, -0.0373, -0.0329, 0.0058, 0.034, -0.0285, 0.0427, -0.0203, 0.0754, 0.0213, -0.0018, -0.0064, 0.0028, 0.0096, 0.0203, -0.0109, -0.009, -0.0616], "scores": [0.424, 0.3918, 0.4273, 0.3916], "xy": [-0.8568, -0.0156]}], "explained": 0.381, "norms": {"chunk0": 1.0, "query0": 1.0}};
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (x, n = 3) => x.toFixed(n).replace(".", ",");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- 01 pipeline ---------- */
+const PIPE = [
+  { id: "doc", lane: 0, col: 0, t: "Doküman", s: "izin-politikasi.md", d: "Ham metin. Worker kuyruktan aldığı dokümanı okuyor. Henüz hiçbir sayı yok, sadece karakterler var." },
+  { id: "chunk", lane: 0, col: 1, t: "Chunking", s: "4 parça", d: "TextChunker metni paragraf ve cümle sınırlarından parçalara bölüyor. Bu sayfadaki veride 400 karakterlik kutular ve 80 karakter overlap kullanıldı, sonuç 4 parça." },
+  { id: "dpre", lane: 0, col: 2, t: "Önek", s: "search_document:", d: "Her parçanın başına search_document: ekleniyor. Model, metnin bir doküman parçası olduğunu bu önekten anlıyor." },
+  { id: "dmodel", lane: 0, col: 3, t: "nomic-embed-text", s: "Ollama · 137M", d: "Ollama'ya /api/embed isteği gidiyor. Model metni token'lara bölüyor, 12 katmanlı transformer'dan geçiriyor, token vektörlerinin ortalamasını alıp uzunluğu 1 olacak şekilde normalize ediyor. Ayrıntısı 02. bölümde." },
+  { id: "dvec", lane: 0, col: 4, t: "Vektör", s: "768 sayı", d: "Her parça için 768 ondalıklı sayı. 03. bölümde gerçek bir vektörün tamamını görebilirsin." },
+  { id: "store", lane: 0, col: 5, t: "pgvector", s: "chunks tablosu", d: "Metin, metadata ve vektör aynı satırda saklanıyor. HNSW indeksi vektör kolonunun üstünde. Aynı parça tekrar gelirse ON CONFLICT ile güncelleniyor (idempotent)." },
+  { id: "q", lane: 1, col: 0, t: "Soru", s: "kullanıcıdan", d: "Kullanıcının sorusu. Örneğin: Babalara kaç gün izin veriliyor?" },
+  { id: "qpre", lane: 1, col: 1, t: "Önek", s: "search_query:", d: "Soruya search_query: öneki ekleniyor. Doküman ile soruya farklı önek, ama aynı model." },
+  { id: "qmodel", lane: 1, col: 2, t: "nomic-embed-text", s: "aynı model", d: "Hazırlık yolundaki modelin aynısı olmak zorunda. Farklı bir modelin vektörleri başka bir haritaya ait olur ve karşılaştırma anlamsızlaşır." },
+  { id: "qvec", lane: 1, col: 3, t: "Soru vektörü", s: "768 sayı", d: "Sorunun iğnesi. Artık dolaptaki iğnelerle aynı haritada." },
+  { id: "search", lane: 1, col: 4, t: "<=> ile ara", s: "ORDER BY · LIMIT k", d: "pgvector soru vektörüne kosinüs mesafesi en küçük olan k parçayı döndürüyor. HNSW indeksi varsa her satıra bakmadan. Ayrıntısı 06 ve 07. bölümlerde." },
+  { id: "llm", lane: 1, col: 5, t: "LLM'e bağlam", s: "Adım 5", d: "Bulunan parçaların metni prompt'a konup sohbet modeline veriliyor. Bu bir sonraki adımımız." },
+];
+(function drawPipe() {
+  const svg = $("#pipe svg");
+  const W = 112, H = 54, x0 = 8, gap = 13, laneY = [58, 188];
+  const cx = c => x0 + c * (W + gap) + W / 2;
+  const defs = el("defs", {}, svg);
+  const m = el("marker", { id: "arr", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" }, defs);
+  el("path", { d: "M0 0L10 5L0 10z", fill: css("--muted") }, m);
+  el("text", { x: 8, y: 20, class: "lane-label" }, svg).textContent = "HAZIRLIK · bir kez, Worker'da";
+  el("text", { x: 8, y: 150, class: "lane-label" }, svg).textContent = "SORGU · her soruda, Api'de";
+  for (let lane = 0; lane < 2; lane++) for (let c = 0; c < 5; c++)
+    el("path", { class: "edge", d: `M${cx(c) + W / 2} ${laneY[lane] + 0}H${cx(c + 1) - W / 2 - 2}`, "marker-end": "url(#arr)" }, svg);
+  el("path", { class: "edge", d: `M${cx(5)} ${laneY[0] + H / 2}V122H${cx(4)}V${laneY[1] - H / 2 - 2}`, "marker-end": "url(#arr)" }, svg);
+  el("path", { class: "edge", d: `M${cx(3)} ${laneY[0] + H / 2}L${cx(2)} ${laneY[1] - H / 2 - 2}`, "stroke-dasharray": "4 4" }, svg);
+  el("text", { x: cx(2) + 46, y: 128, class: "lane-label" }, svg).textContent = "AYNI MODEL";
+  for (const n of PIPE) {
+    const g = el("g", { class: "node", tabindex: 0, role: "button", "aria-label": n.t }, svg);
+    const x = cx(n.col), y = laneY[n.lane];
+    el("rect", { x: x - W / 2, y: y - H / 2, width: W, height: H, rx: 6 }, g);
+    const t = el("text", { x, y: y - 3, "text-anchor": "middle", "font-weight": 650 }, g); t.textContent = n.t;
+    const s = el("text", { x, y: y + 15, "text-anchor": "middle", class: "sub" }, g); s.textContent = n.s;
+    const pick = () => { svg.querySelectorAll(".node").forEach(x => x.classList.remove("on")); g.classList.add("on"); $("#pipeDetail").innerHTML = `<h3>${n.t}</h3><p>${n.d}</p>`; };
+    g.addEventListener("click", pick); g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+    if (n.id === "dmodel") pick();
+  }
+})();
+
+/* ---------- 02 stepper ---------- */
+const sample = "Babalara doğum sonrası 5 iş günü babalık izni verilir.";
+const tokens = ["[CLS]", "search", "_", "document", ":", "baba", "##lara", "dog", "##um", "sonra", "##si", "5", "is", "gunu", "baba", "##lik", "izni", "veri", "##lir", ".", "[SEP]"];
+const fakeId = t => 1000 + [...t].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 28000, 7);
+function rng(seed) { return () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }; }
+function colorFor(v, lim = 0.15) {
+  const t = Math.max(-1, Math.min(1, v / lim));
+  const a = css("--accent"), p = css("--pin"), base = css("--surface");
+  const c = t >= 0 ? a : p;
+  return `color-mix(in srgb, ${c} ${Math.round(Math.abs(t) * 100)}%, ${base})`;
+}
+function cellRow(seedText, n = 16) { const r = rng([...seedText].reduce((a, c) => a + c.charCodeAt(0), 0)); return Array.from({ length: n }, () => (r() - 0.5) * 0.3); }
+const realChunk3 = D.chunks[3].vec;
+const STEPS = [
+  { t: "1 · Önek", tag: "real", h: `<p>Embedder sınıfımız parçanın başına <code>search_document: </code> ekliyor. Modele giden metin artık şu:</p>
+     <div class="chips"><span class="chip pre">search_document:</span><span class="chip">${sample}</span></div>` },
+  { t: "2 · Token'lar", tag: "demo", h: `<p>Model metni harf harf değil, <b>token</b> denen parçalar halinde okur. nomic-bert, BERT'in WordPiece yöntemini kullanır: sık kelimeler tek parça, nadir kelimeler alt parçalara bölünür (<code>##</code> "önceki parçanın devamı" demek). Başa <code>[CLS]</code>, sona <code>[SEP]</code> eklenir. Her token sözlükte bir sayıya (ID) karşılık gelir.</p>
+     <div class="chips">${tokens.map(t => `<span class="chip">${t}<small>${fakeId(t)}</small></span>`).join("")}</div>
+     <p class="note">Bölünme ve ID'ler temsili. Bu modelin sözlüğü İngilizce ağırlıklı ve Türkçe karakterleri sadeleştiriyor (ğ→g, ş→s gibi). Türkçe metnin İngilizceye göre daha çok parçaya bölünmesinin ve daha zayıf temsil edilmesinin bir sebebi bu.</p>` },
+  { t: "3 · İlk vektörler", tag: "demo", h: `<p>Her token ID'si dev bir tabloda (embedding tablosu) bir satıra bakılarak 768 sayılık bir başlangıç vektörüne çevrilir. Bu aşamada "baba" kelimesinin vektörü, cümlenin geri kalanından habersizdir.</p>
+     ${["baba", "##lik", "izni", "5"].map(t => `<div class="rowvec"><span>${t}</span><span class="cells">${cellRow(t).map(v => `<i style="background:${colorFor(v)}"></i>`).join("")}</span></div>`).join("")}
+     <p class="note">768 sayının ilk 16'sı gösteriliyor.</p>` },
+  { t: "4 · Dikkat (attention)", tag: "demo", h: `<p>Vektörler 12 katmanlı bir transformer'dan geçer. Her katmanda her token diğer bütün token'lara "bakar" ve kendi vektörünü onlardan aldığı bilgiyle günceller. Bu mekanizmanın adı <b>attention</b>. Sonunda "izni" token'ının vektörü artık "babalık", "doğum" ve "5 gün" bağlamını da taşır.</p>
+     <svg viewBox="0 0 620 140" style="width:100%;max-width:620px;height:auto" role="img" aria-label="izni tokenının diğer tokenlara dikkat ağırlıkları">${(() => {
+       const tk = ["baba", "##lik", "izni", "dog", "##um", "5", "gunu", "veri", "##lir"], w = [0.9, 0.85, 0, 0.55, 0.45, 0.6, 0.5, 0.25, 0.2];
+       const x = i => 40 + i * 68, src = 2; let s = "";
+       tk.forEach((t, i) => { if (i !== src) { const mx = (x(i) + x(src)) / 2, h = 18 + Math.abs(i - src) * 9; s += `<path d="M${x(src)} 96 Q${mx} ${96 - h * 2} ${x(i)} 96" fill="none" stroke="var(--accent)" stroke-opacity="${w[i]}" stroke-width="${1 + w[i] * 4}"/>`; } });
+       tk.forEach((t, i) => { s += `<text x="${x(i)}" y="120" text-anchor="middle" font-family="var(--f-mono)" font-size="14" fill="${i === src ? "var(--pin)" : "var(--ink)"}" font-weight="${i === src ? 700 : 400}">${t}</text>`; });
+       return s; })()}</svg>
+     <p class="note">Çizgi kalınlığı, "izni" token'ının hangi token'a ne kadar dikkat ettiğini gösteriyor (temsili ağırlıklar).</p>` },
+  { t: "5 · Ortalama (pooling)", tag: "demo", h: `<p>Transformer'dan çıkan token vektörlerinin hepsinin <b>ortalaması</b> alınır (mean pooling). Böylece 21 token'ın 21 vektörü, bütün cümleyi temsil eden <b>tek</b> bir vektöre iner.</p>
+     ${["baba", "izni", "5", "gunu"].map(t => `<div class="rowvec"><span>${t}</span><span class="cells">${cellRow(t + "x").map(v => `<i style="background:${colorFor(v)}"></i>`).join("")}</span></div>`).join("")}
+     <div class="rowvec"><span><b>ortalama</b></span><span class="cells">${(() => { const rows = ["baba", "izni", "5", "gunu"].map(t => cellRow(t + "x")); return rows[0].map((_, j) => rows.reduce((a, r) => a + r[j], 0) / rows.length).map(v => `<i style="background:${colorFor(v * 2)}"></i>`).join(""); })()}</span></div>` },
+  { t: "6 · Normalize", tag: "real", h: `<p>Son olarak vektör, uzunluğu tam <b>1</b> olacak şekilde ölçeklenir (L2 normalizasyonu). Böylece karşılaştırmada sadece <b>yön</b> önemli olur, metnin uzunluğu skoru şişirmez. Ölçtüğümüz uzunluk: <code>${D.norms.chunk0.toFixed(4)}</code>.</p>
+     <div class="rowvec"><span>Parça 3</span><span class="cells">${realChunk3.slice(0, 16).map(v => `<i style="background:${colorFor(v)}"></i>`).join("")}</span></div>
+     <p class="mono" style="font-size:13px;overflow-x:auto;white-space:nowrap">[${realChunk3.slice(0, 6).map(v => v.toFixed(4)).join(", ")}, … 762 sayı daha]</p>
+     <p class="note">Bu, veritabanındaki Parça 3'ün gerçek vektörü. Tamamını 03. bölümde görebilirsin.</p>` },
+];
+let step = 0;
+function renderStep() {
+  const s = STEPS[step];
+  $("#stepBody").innerHTML = `<div class="stage"><div><span class="tag ${s.tag}">${s.tag === "real" ? "Gerçek veri" : "Temsili"}</span></div>${s.h}</div>`;
+  $("#stepNav").querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-current", i === step));
+  $("#prevStep").disabled = step === 0; $("#nextStep").disabled = step === STEPS.length - 1;
+}
+STEPS.forEach((s, i) => { const b = document.createElement("button"); b.type = "button"; b.textContent = s.t; b.addEventListener("click", () => { step = i; renderStep(); }); $("#stepNav").appendChild(b); });
+$("#prevStep").addEventListener("click", () => { step = Math.max(0, step - 1); renderStep(); });
+$("#nextStep").addEventListener("click", () => { step = Math.min(STEPS.length - 1, step + 1); renderStep(); });
+renderStep();
+
+/* ---------- 03 barcode ---------- */
+const VECS = [
+  ...D.chunks.map(c => ({ name: `Parça ${c.index}: ${c.text.replace(/\n/g, " ").slice(0, 48)}…`, vec: c.vec })),
+  ...D.queries.map((q, i) => ({ name: `Soru S${i + 1}: ${q.text}`, vec: q.vec })),
+];
+VECS.forEach((v, i) => { const o = document.createElement("option"); o.value = i; o.textContent = v.name; $("#barSel").appendChild(o); });
+$("#ramp").style.background = `linear-gradient(90deg, ${css("--pin")}, ${css("--surface")}, ${css("--accent")})`;
+function drawBarcode() {
+  const v = VECS[+$("#barSel").value].vec, box = $("#barcode");
+  box.innerHTML = v.map((x, i) => `<i data-i="${i}" style="background:${colorFor(x)}"></i>`).join("");
+}
+$("#barcode").addEventListener("mouseover", e => {
+  const i = e.target.dataset?.i; if (i === undefined) return;
+  const v = VECS[+$("#barSel").value].vec[i];
+  $("#barReadout").textContent = `boyut #${+i + 1} / 768   değer: ${v >= 0 ? "+" : ""}${v.toFixed(4)}`;
+});
+$("#barSel").addEventListener("change", drawBarcode);
+drawBarcode();
+$("#normNote").textContent = `Kırmızı negatif, mavi pozitif değer. Değerlerin çoğu −0,15 ile +0,15 arasında. Bütün vektörlerin uzunluğu ölçümümüzde ${D.norms.query0.toFixed(4)}: model normalize edilmiş vektör döndürüyor.`;
+
+/* ---------- 04 cosine ---------- */
+function drawCos() {
+  const deg = +$("#angle").value, svg = $("#cosSvg"); svg.innerHTML = "";
+  const ox = 150, oy = 180, L = 120, rad = deg * Math.PI / 180;
+  const defs = el("defs", {}, svg);
+  for (const [id, c] of [["ca", "--accent"], ["cp", "--pin"]]) { const m = el("marker", { id, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" }, defs); el("path", { d: "M0 0L10 5L0 10z", fill: css(c) }, m); }
+  el("line", { x1: 20, y1: oy, x2: 280, y2: oy, stroke: css("--grid") }, svg);
+  const a0 = -Math.PI / 2 + rad / 2, b0 = -Math.PI / 2 - rad / 2;
+  el("line", { x1: ox, y1: oy, x2: ox + L * Math.cos(a0), y2: oy + L * Math.sin(a0), stroke: css("--accent"), "stroke-width": 3, "marker-end": "url(#ca)" }, svg);
+  el("line", { x1: ox, y1: oy, x2: ox + L * Math.cos(b0), y2: oy + L * Math.sin(b0), stroke: css("--pin"), "stroke-width": 3, "marker-end": "url(#cp)" }, svg);
+  const r = 34, large = rad > Math.PI ? 1 : 0;
+  el("path", { d: `M${ox + r * Math.cos(b0)} ${oy + r * Math.sin(b0)} A${r} ${r} 0 ${large} 1 ${ox + r * Math.cos(a0)} ${oy + r * Math.sin(a0)}`, fill: "none", stroke: css("--muted") }, svg);
+  const t1 = el("text", { x: ox + (L + 10) * Math.cos(a0), y: oy + (L + 10) * Math.sin(a0), fill: css("--accent"), "font-size": 13, "text-anchor": "middle", "font-family": "var(--f-body)" }, svg); t1.textContent = "parça";
+  const t2 = el("text", { x: ox + (L + 10) * Math.cos(b0), y: oy + (L + 10) * Math.sin(b0), fill: css("--pin"), "font-size": 13, "text-anchor": "middle", "font-family": "var(--f-body)" }, svg); t2.textContent = "soru";
+  const c = Math.cos(rad);
+  $("#angleVal").textContent = deg; $("#cosVal").textContent = fmt(c); $("#distVal").textContent = fmt(1 - c);
+}
+$("#angle").addEventListener("input", drawCos); drawCos();
+(function dotFormula() {
+  const q = D.queries[0].vec, c = D.chunks[3].vec;
+  const terms = [0, 1, 2].map(i => `(${q[i].toFixed(4)} × ${c[i].toFixed(4)})`).join(" + ");
+  const sum = q.reduce((a, x, i) => a + x * c[i], 0);
+  $("#dotFormula").textContent = `${terms} + … + 765 terim daha = ${sum.toFixed(4)}`;
+})();
+
+/* ---------- 05 map ---------- */
+const VERDICT = [
+  { k: "ok", t: "Doğru. Babalık izni Parça 3'te, ilk sırada geldi. pgvector çıktısında gördüğümüz 0,781 ile aynı değer." },
+  { k: "ok", t: "Doğru. Soruda \"evden\", dokümanda \"uzaktan çalışma\" yazıyor. Ortak kelime yok ama anlam yakalandı. Fark çok küçük ama: 0,679'a karşı 0,665." },
+  { k: "ok", t: "Doğru. Hastalık raporu kuralı Parça 3'te. Bu sefer fark net: 0,689'a karşı 0,601." },
+  { k: "bad", t: "Yanlış. Yıllık izin bilgisi Parça 0'da ama ilk sırada Parça 3 var. Parça 3 üç konuyu birden taşıyan karma bir parça ve Türkçe'de skorlar birbirine çok yakın. LLM'e top-3 versek doğru parça yine de gider, top-1'de kaçar." },
+  { k: "ok", t: "Doğru. İzin talebi kuralı Parça 1'de ve bu sefer belirgin farkla kazandı: 0,731." },
+  { k: "warn", t: "Dikkat. Dokümanda otopark hiç geçmiyor ama en yüksek skor 0,687. Vektör araması her zaman bir şey döndürür. Bir benzerlik eşiği yoksa LLM alakasız metinle cevap üretmeye zorlanır, burası halüsinasyonun kapısı." },
+  { k: "bad", t: "Başarısız. İngilizce soru, Türkçe dokümanlarla 0,39 ile 0,43 arasında, yani hiçbir parçayla eşleşmedi. Bu model diller arası (cross-lingual) arama yapamıyor. Çok dilli bir model (örneğin bge-m3) bunu çözer." },
+];
+const MW = 520, MH = 400, pad = 46;
+const FAR = D.queries.length - 1;
+const allXY = [...D.chunks.map(c => c.xy), ...D.queries.filter((q, i) => i !== FAR).map(q => q.xy)];
+const xs = allXY.map(p => p[0]), ys = allXY.map(p => p[1]);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const sx = x => clamp(pad + (x - Math.min(...xs)) / (Math.max(...xs) - Math.min(...xs)) * (MW - 2 * pad), 18, MW - 60);
+const sy = y => clamp(MH - pad - (y - Math.min(...ys)) / (Math.max(...ys) - Math.min(...ys)) * (MH - 2 * pad), 18, MH - 18);
+let selQ = 0;
+function drawMap() {
+  const svg = $("#map"); svg.innerHTML = "";
+  for (let x = 0; x <= MW; x += 40) el("line", { x1: x, y1: 0, x2: x, y2: MH, class: "gridline" }, svg);
+  for (let y = 0; y <= MH; y += 40) el("line", { x1: 0, y1: y, x2: MW, y2: y, class: "gridline" }, svg);
+  const q = D.queries[selQ], best = q.scores.indexOf(Math.max(...q.scores));
+  D.chunks.forEach((c, i) => {
+    const s = q.scores[i], w = Math.max(0.5, (s - 0.35) * 14);
+    el("line", { x1: sx(q.xy[0]), y1: sy(q.xy[1]), x2: sx(c.xy[0]), y2: sy(c.xy[1]), stroke: i === best ? css("--pin") : css("--accent"), "stroke-width": w, "stroke-opacity": i === best ? 0.9 : 0.35 }, svg);
+  });
+  D.queries.forEach((qq, i) => {
+    const on = i === selQ, g = el("g", { style: "cursor:pointer" }, svg);
+    el("circle", { cx: sx(qq.xy[0]), cy: sy(qq.xy[1]), r: on ? 9 : 6, fill: on ? css("--pin") : css("--surface"), stroke: css("--pin"), "stroke-width": 2 }, g);
+    const t = el("text", { x: sx(qq.xy[0]) + 11, y: sy(qq.xy[1]) + (i === FAR ? 22 : 4), "font-family": "var(--f-mono)", "font-size": 12, fill: css("--pin"), "font-weight": on ? 700 : 400 }, g); t.textContent = i === FAR ? `S${i + 1} · harita dışında, çok uzak` : `S${i + 1}`;
+    g.addEventListener("click", () => pickQ(i));
+  });
+  D.chunks.forEach((c, i) => {
+    const x = sx(c.xy[0]), y = sy(c.xy[1]);
+    el("rect", { x: x - 9, y: y - 9, width: 18, height: 18, rx: 3, fill: i === best ? css("--pin") : css("--accent") }, svg);
+    const t = el("text", { x, y: y + 4.5, "text-anchor": "middle", "font-family": "var(--f-mono)", "font-size": 12, fill: css("--surface"), "font-weight": 700 }, svg); t.textContent = c.index;
+    const l = el("text", { x, y: y - 15, "text-anchor": "middle", "font-family": "var(--f-body)", "font-size": 12, fill: css("--muted") }, svg); l.textContent = `Parça ${c.index}`;
+  });
+}
+function renderRank() {
+  const q = D.queries[selQ];
+  const order = q.scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]);
+  $("#rank").innerHTML = order.map(([s, i], r) => `<div class="rank-row ${r === 0 ? "top" : ""}"><span class="mono">P${i}</span><span class="bar"><span style="width:${Math.max(2, (s - 0.3) / 0.55 * 100)}%"></span></span><span class="val">${fmt(s)}</span></div>`).join("");
+  const v = VERDICT[selQ]; const box = $("#verdict"); box.className = `verdict ${v.k}`; box.textContent = v.t;
+  $("#qlist").querySelectorAll(".qbtn").forEach((b, i) => b.setAttribute("aria-pressed", i === selQ));
+}
+function renderWalk() {
+  const q = D.queries[selQ];
+  $("#walkIntro").innerHTML = `Seçili soru: <b>${q.text}</b> (05. bölümden değiştirebilirsin). Api'deki kod bu SQL'i çalıştırıyor, <code>$1</code> sorunun vektörü, <code>$2</code> ise k.`;
+  $("#walk").innerHTML = [
+    `Embedder soruya <code>search_query:</code> önekini ekleyip Ollama'ya gönderiyor. Geri 768 sayı dönüyor: <code class="mono">[${q.vec.slice(0, 4).map(v => v.toFixed(4)).join(", ")}, …]</code>`,
+    `Npgsql bu sayıları pgvector'ın <code>vector</code> tipine çevirip <code>$1</code> parametresi olarak gönderiyor. Parametre kullanmak SQL injection'ı da önlüyor.`,
+    `PostgreSQL her satır için <code>embedding &lt;=&gt; $1</code> mesafesini hesaplıyor. İndeks varsa (HNSW) satırların hepsine bakmadan, katmanlı graf üzerinden adayları buluyor.`,
+    `<code>ORDER BY</code> mesafeye göre küçükten büyüğe sıralıyor, <code>LIMIT $2</code> ilk k satırı alıyor. Bu, top-k.`,
+    `<code>1 - mesafe</code> ile benzerlik skoru hesaplanıp parçanın metniyle birlikte döndürülüyor. Bu metinler Adım 5'te LLM'in önüne konacak.`,
+  ].map(t => `<li><span>${t}</span></li>`).join("");
+  const order = q.scores.map((s, i) => [s, i]).sort((a, b) => b[0] - a[0]);
+  $("#sqlRows").innerHTML = order.map(([s, i], r) => `<tr class="${r === 0 ? "top" : ""}"><td class="num">${r + 1}</td><td>Parça ${i}</td><td class="num">${(1 - s).toFixed(4)}</td><td class="num">${s.toFixed(4)}</td><td>${D.chunks[i].text.replace(/\n/g, " ").slice(0, 52)}…</td></tr>`).join("");
+}
+function pickQ(i) { selQ = i; drawMap(); renderRank(); renderWalk(); }
+D.queries.forEach((q, i) => { const b = document.createElement("button"); b.type = "button"; b.className = "qbtn"; b.innerHTML = `<span class="mono">S${i + 1}</span><span>${q.text}</span>`; b.addEventListener("click", () => pickQ(i)); $("#qlist").appendChild(b); });
+$("#mapNote").innerHTML = `<span class="tag real">Gerçek veri</span> 768 boyut bu düz haritaya PCA ile indirildi. Harita bilginin yalnızca %${Math.round(D.explained * 100)}'ini gösterebiliyor, bu yüzden çizgi uzunlukları gerçek mesafeyle birebir değil. Skorlar ve sıralama ise 768 boyutun tamamıyla hesaplandı.`;
+$("#chunkTexts").innerHTML = D.chunks.map(c => `<div><div class="label">Parça ${c.index}</div><p class="chunk-text">${c.text}</p></div>`).join("");
+pickQ(0);
+
+/* ---------- 06 HNSW toy ---------- */
+const HW = 640, HH = 380;
+let H = null, hq = { x: 470, y: 120 }, hTimer = [];
+function buildHNSW(seed) {
+  const r = rng(seed), N = 80, pts = [];
+  for (let i = 0; i < N; i++) { const u = r(); pts.push({ x: 30 + r() * (HW - 60), y: 30 + r() * (HH - 60), level: u < 0.06 ? 2 : u < 0.28 ? 1 : 0 }); }
+  if (!pts.some(p => p.level === 2)) pts[0].level = 2;
+  const M = [5, 3, 2], layers = [0, 1, 2].map(L => pts.map((p, i) => i).filter(i => pts[i].level >= L));
+  const d = (a, b) => Math.hypot(pts[a].x - pts[b].x, pts[a].y - pts[b].y);
+  const adj = [0, 1, 2].map(L => { const A = new Map(); layers[L].forEach(i => A.set(i, new Set())); layers[L].forEach(i => { layers[L].filter(j => j !== i).sort((a, b) => d(i, a) - d(i, b)).slice(0, M[L]).forEach(j => { A.get(i).add(j); A.get(j).add(i); }); }); return A; });
+  return { pts, layers, adj, entry: layers[2][0] };
+}
+function searchHNSW(q) {
+  const { pts, adj, entry } = H, dq = i => Math.hypot(pts[i].x - q.x, pts[i].y - q.y);
+  let cur = entry; const steps = [], visited = new Set([cur]);
+  for (let L = 2; L >= 0; L--) {
+    let improved = true;
+    while (improved) {
+      improved = false; let best = cur;
+      for (const n of adj[L].get(cur)) { visited.add(n); if (dq(n) < dq(best)) best = n; }
+      if (best !== cur) { steps.push({ L, from: cur, to: best }); cur = best; improved = true; }
+    }
+    steps.push({ L, from: cur, to: cur, descend: true });
+  }
+  const exact = pts.map((p, i) => i).sort((a, b) => dq(a) - dq(b))[0];
+  return { steps, found: cur, exact, visited: visited.size };
+}
+function drawHNSW(state = {}) {
+  const svg = $("#hnsw"); svg.innerHTML = "";
+  const { pts, adj } = H, L = state.layer ?? 0;
+  for (const [i, ns] of adj[L]) for (const j of ns) if (i < j) el("line", { x1: pts[i].x, y1: pts[i].y, x2: pts[j].x, y2: pts[j].y, stroke: css("--line"), "stroke-width": 1 }, svg);
+  pts.forEach((p, i) => {
+    const inLayer = p.level >= L, rr = p.level === 2 ? 7 : p.level === 1 ? 5 : 3.5;
+    el("circle", { cx: p.x, cy: p.y, r: rr, fill: inLayer ? (p.level === 2 ? css("--ink") : p.level === 1 ? css("--accent") : css("--muted")) : css("--grid"), "fill-opacity": inLayer ? 1 : 0.8 }, svg);
+  });
+  (state.path || []).forEach(s => { if (!s.descend) el("line", { x1: pts[s.from].x, y1: pts[s.from].y, x2: pts[s.to].x, y2: pts[s.to].y, stroke: css("--pin"), "stroke-width": 3, "stroke-linecap": "round" }, svg); });
+  if (state.cur !== undefined) el("circle", { cx: pts[state.cur].x, cy: pts[state.cur].y, r: 10, fill: "none", stroke: css("--pin"), "stroke-width": 2.5 }, svg);
+  if (state.exact !== undefined) el("circle", { cx: pts[state.exact].x, cy: pts[state.exact].y, r: 14, fill: "none", stroke: css("--good"), "stroke-width": 2, "stroke-dasharray": "3 3" }, svg);
+  el("path", { d: `M${hq.x} ${hq.y - 16} l-7 -12 a8 8 0 1 1 14 0 z`, fill: css("--pin") }, svg);
+  el("circle", { cx: hq.x, cy: hq.y, r: 3, fill: css("--pin") }, svg);
+  document.querySelectorAll("#layerPills span").forEach(s => s.classList.toggle("on", +s.dataset.l === L));
+}
+function runHNSW() {
+  hTimer.forEach(clearTimeout); hTimer = [];
+  const res = searchHNSW(hq), path = []; let t = 0, layer = 2;
+  drawHNSW({ layer: 2, cur: H.entry, path });
+  $("#hnswStats").innerHTML = `<span>Arama sürüyor…</span>`;
+  const delay = reduce ? 0 : 420;
+  res.steps.forEach(s => { t += delay; hTimer.push(setTimeout(() => { if (s.descend) layer = Math.max(0, s.L - 1); else path.push(s); drawHNSW({ layer: s.descend ? Math.max(0, s.L - 1) : s.L, cur: s.to, path }); }, t)); });
+  hTimer.push(setTimeout(() => {
+    drawHNSW({ layer: 0, cur: res.found, path, exact: res.exact });
+    $("#hnswStats").innerHTML = `<span>HNSW'nin baktığı nokta: <b>${res.visited}</b> / 80</span><span>Tam arama: <b>80</b> / 80</span><span>Sonuç: <b style="color:${res.found === res.exact ? "var(--good)" : "var(--warn)"}">${res.found === res.exact ? "en yakını buldu" : "en yakını kaçırdı (yaklaşık arama)"}</b></span>`;
+  }, t + delay));
+}
+$("#hnsw").addEventListener("click", e => {
+  const svg = $("#hnsw"), pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse()); hq = { x: p.x, y: p.y }; runHNSW();
+});
+$("#hnswRun").addEventListener("click", runHNSW);
+let hSeed = 42;
+$("#hnswNew").addEventListener("click", () => { hSeed += 97; H = buildHNSW(hSeed); runHNSW(); });
+H = buildHNSW(hSeed); drawHNSW({ layer: 2 });
+$("#hnswStats").innerHTML = `<span>Siyah: katman 2 (az nokta), mavi: katman 1, gri: katman 0 (hepsi). Kırmızı iğne: soru.</span>`;
+
+/* ---------- 08 quiz ---------- */
+const QUIZ = [
+  { q: "Doküman parçaları ile soru neden aynı embedding modeliyle vektöre çevrilmeli?", o: ["Daha hızlı olduğu için", "Farklı modellerin vektörleri farklı haritalara ait olduğu için karşılaştırılamaz", "pgvector sadece tek bir model destekliyor"], a: 1, w: "Her model kendi haritasını çizer. İki farklı haritadaki koordinatları karşılaştırmak anlamsız olur." },
+  { q: "pgvector'da <=> operatörü neyi hesaplar?", o: ["Kosinüs benzerliği", "Kosinüs mesafesi (1 − benzerlik)", "Öklid mesafesi"], a: 1, w: "<=> mesafe döndürür, küçük olan daha yakındır. Bu yüzden ORDER BY ile küçükten büyüğe sıralıyoruz ve benzerliği 1 − mesafe ile buluyoruz." },
+  { q: "HNSW indeksi neyi feda edip neyi kazanır?", o: ["Depolamayı feda eder, isabeti kazanır", "Kesin isabeti feda eder, büyük hız kazanır", "Hiçbir şeyi feda etmez"], a: 1, w: "HNSW yaklaşık en yakın komşu (ANN) aramasıdır. Nadiren en yakını kaçırır, karşılığında noktaların küçük bir kısmına bakarak sonuca ulaşır." },
+  { q: "\"Şirket otoparkı ücretli mi?\" sorusu 0,687 skor aldı. Bundan ne öğreniyoruz?", o: ["Dokümanda otopark bilgisi var", "Vektör araması her zaman sonuç döndürür, bir benzerlik eşiği gerekir", "Model bozuk"], a: 1, w: "Arama alakasız bir soruya da en yakın parçayı getirir. Eşik ya da \"bilmiyorum\" kuralı olmadan LLM bu parçayla uydurma bir cevap üretebilir." },
+  { q: "İngilizce soru Türkçe dokümanlarla neden eşleşmedi?", o: ["nomic-embed-text diller arası arama için eğitilmemiş, İngilizce ağırlıklı bir model", "pgvector Türkçe karakterleri desteklemiyor", "Chunk boyutu çok küçük"], a: 0, w: "Diller arası arama için çok dilli bir embedding modeli gerekir. Model seçimi dokümanların ve soruların diline göre yapılmalı." },
+];
+QUIZ.forEach((item, qi) => {
+  const box = document.createElement("div"); box.className = "q panel";
+  box.innerHTML = `<div class="label">Soru ${qi + 1}</div><p><b></b></p><div class="opts"></div><p class="why" hidden></p>`;
+  box.querySelector("b").textContent = item.q;
+  item.o.forEach((o, oi) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "opt"; b.textContent = o;
+    b.addEventListener("click", () => {
+      box.querySelectorAll(".opt").forEach((x, xi) => { x.classList.remove("right", "wrong"); if (xi === item.a) x.classList.add("right"); });
+      if (oi !== item.a) b.classList.add("wrong");
+      const why = box.querySelector(".why"); why.hidden = false; why.textContent = (oi === item.a ? "Doğru. " : "Değil. ") + item.w;
+    });
+    box.querySelector(".opts").appendChild(b);
+  });
+  $("#quiz").appendChild(box);
+});
+</script>
+</body>
+</html>
