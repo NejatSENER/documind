@@ -1,5 +1,7 @@
+using System.Text;
 using System.Text.Json;
 using DocuMind.Core;
+using DocuMind.Core.History;
 using DocuMind.Core.Messaging;
 using DocuMind.Core.Rag;
 using DocuMind.Core.Storage;
@@ -20,6 +22,7 @@ builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(
 builder.Services.AddSingleton<IChatClient>(
     new OllamaApiClient(new Uri(ollama.Endpoint), ollama.ChatModel));
 builder.Services.AddDocuMindCore(builder.Configuration.GetConnectionString("Postgres")!, topK);
+builder.Services.AddConversationHistory(builder.Configuration.GetConnectionString("Mongo")!);
 await builder.Services.AddSemanticCacheAsync(
     builder.Configuration.GetConnectionString("Redis")!,
     builder.Configuration.GetValue("Rag:CacheThreshold", 0.95));
@@ -50,7 +53,8 @@ app.MapPost("/documents", async (IngestRequest request, DocumentPublisher publis
     return Results.Accepted(value: new { request.DocumentId, status = "queued" });
 });
 
-app.MapPost("/chat/stream", async (ChatRequest request, RagChatService rag, HttpResponse response, CancellationToken ct) =>
+app.MapPost("/chat/stream", async (
+    ChatRequest request, RagChatService rag, ConversationStore history, HttpResponse response, CancellationToken ct) =>
 {
     if (string.IsNullOrWhiteSpace(request.Question))
     {
@@ -61,15 +65,27 @@ app.MapPost("/chat/stream", async (ChatRequest request, RagChatService rag, Http
     response.ContentType = "text/event-stream";
     response.Headers.CacheControl = "no-cache";
 
-    var answer = await rag.AskAsync(request.Question, ct);
+    var conversationId = string.IsNullOrWhiteSpace(request.ConversationId)
+        ? Guid.NewGuid().ToString("N")
+        : request.ConversationId;
+    var pastMessages = await history.GetRecentAsync(conversationId, ct: ct);
+
+    var answer = await rag.AskAsync(request.Question, pastMessages, ct);
+    await WriteEventAsync(response, "conversation", new { Id = conversationId, answer.SearchQuestion }, ct);
     await WriteEventAsync(response, "cache", answer.CacheHit is { } hit
         ? new { Hit = true, hit.Similarity, hit.Question }
         : new { Hit = false, Similarity = 0d, Question = "" }, ct);
     await WriteEventAsync(response, "sources",
         answer.Sources.Select((s, i) => new { Label = PromptBuilder.LabelFor(i), s.DocumentId, s.ChunkIndex, s.Similarity }), ct);
 
+    var fullAnswer = new StringBuilder();
     await foreach (var token in answer.Tokens.WithCancellation(ct))
+    {
+        fullAnswer.Append(token);
         await WriteEventAsync(response, "token", token, ct);
+    }
+
+    await history.AppendAsync(conversationId, request.Question, fullAnswer.ToString().Trim(), ct);
 
     await WriteEventAsync(response, "done", new { }, ct);
 });
@@ -83,5 +99,5 @@ static async Task WriteEventAsync<T>(HttpResponse response, string eventName, T 
 }
 
 record IngestRequest(string DocumentId, string Text);
-record ChatRequest(string Question);
+record ChatRequest(string Question, string? ConversationId = null);
 record OllamaSettings(string Endpoint, string ChatModel, string EmbeddingModel);

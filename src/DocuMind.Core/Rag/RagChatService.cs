@@ -7,21 +7,25 @@ using Microsoft.Extensions.AI;
 
 namespace DocuMind.Core.Rag;
 
-public record RagAnswer(IReadOnlyList<SearchHit> Sources, IAsyncEnumerable<string> Tokens, CachedAnswer? CacheHit = null);
+public record RagAnswer(
+    string SearchQuestion, IReadOnlyList<SearchHit> Sources, IAsyncEnumerable<string> Tokens, CachedAnswer? CacheHit = null);
 
 public sealed class RagChatService(
-    Embedder embedder, PgVectorChunkStore store, IChatClient chat, int topK = 3, SemanticCache? cache = null)
+    Embedder embedder, PgVectorChunkStore store, IChatClient chat, QueryRewriter rewriter,
+    int topK = 3, SemanticCache? cache = null)
 {
-    public async Task<RagAnswer> AskAsync(string question, CancellationToken ct = default)
+    public async Task<RagAnswer> AskAsync(
+        string question, IReadOnlyList<ChatMessage>? history = null, CancellationToken ct = default)
     {
-        var queryVector = await embedder.EmbedQueryAsync(question, ct);
+        var searchQuestion = await rewriter.RewriteAsync(question, history ?? [], ct);
+        var queryVector = await embedder.EmbedQueryAsync(searchQuestion, ct);
 
         if (cache is not null && await cache.FindAsync(queryVector) is { } hit)
-            return new RagAnswer(hit.Sources, ReplayAsync(hit.Answer), hit);
+            return new RagAnswer(searchQuestion, hit.Sources, ReplayAsync(hit.Answer), hit);
 
         var hits = await store.SearchAsync(queryVector, topK, ct);
-        var messages = PromptBuilder.Build(question, hits);
-        return new RagAnswer(hits, StreamAndCacheAsync(question, queryVector, hits, messages, ct));
+        var messages = PromptBuilder.Build(searchQuestion, hits);
+        return new RagAnswer(searchQuestion, hits, StreamAndCacheAsync(searchQuestion, queryVector, hits, messages, ct));
     }
 
     private async IAsyncEnumerable<string> StreamAndCacheAsync(

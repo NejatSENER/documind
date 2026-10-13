@@ -56,6 +56,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
     <div class="row">
       <button id="ask" type="button">Sor</button>
       <button id="stop" class="ghost" type="button" disabled>Durdur</button>
+      <button id="newChat" class="ghost" type="button">Yeni sohbet</button>
       <span class="stats" id="stats"></span>
     </div>
   </section>
@@ -64,6 +65,7 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
     <div class="label">Cevap</div>
     <div id="answer" class="empty">Henüz soru sorulmadı.</div>
     <div class="stats" id="cacheInfo"></div>
+    <div class="stats" id="convInfo"></div>
     <div class="label">Kaynaklar</div>
     <div class="chips" id="sources"></div>
   </section>
@@ -84,10 +86,12 @@ button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px
 <script>
 const $ = s => document.querySelector(s);
 let controller = null;
+let conversationId = null;
 
 document.querySelectorAll(".examples button").forEach(b => b.addEventListener("click", () => { $("#question").value = b.textContent; ask(); }));
 $("#ask").addEventListener("click", ask);
 $("#stop").addEventListener("click", () => controller?.abort());
+$("#newChat").addEventListener("click", () => { conversationId = null; $("#convInfo").textContent = "Yeni sohbet başladı."; $("#answer").textContent = "Henüz soru sorulmadı."; $("#answer").classList.add("empty"); $("#sources").innerHTML = ""; });
 $("#question").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
 
 async function ask() {
@@ -103,7 +107,7 @@ async function ask() {
   try {
     const res = await fetch("/chat/stream", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }), signal: controller.signal,
+      body: JSON.stringify({ question, conversationId }), signal: controller.signal,
     });
     if (!res.ok) throw new Error(`Sunucu ${res.status} döndürdü.`);
 
@@ -118,7 +122,10 @@ async function ask() {
         const raw = buffer.slice(0, end); buffer = buffer.slice(end + 2);
         $("#log").textContent += raw + "\n\n";
         const event = /^event: (.*)$/m.exec(raw)?.[1], data = JSON.parse(/^data: (.*)$/m.exec(raw)?.[1] ?? "null");
-        if (event === "cache") {
+        if (event === "conversation") {
+          conversationId = data.Id;
+          $("#convInfo").textContent = `Sohbet: ${data.Id.slice(0, 8)}…` + (data.SearchQuestion !== question ? ` · Aranan soru: "${data.SearchQuestion}"` : "");
+        } else if (event === "cache") {
           $("#cacheInfo").textContent = data.Hit
             ? `Cache'ten geldi: "${data.Question}" sorusuna ${data.Similarity.toFixed(3)} benzer. LLM çağrılmadı.`
             : "Cache'te yok, cevap LLM'den üretiliyor.";
