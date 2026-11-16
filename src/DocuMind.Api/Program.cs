@@ -34,6 +34,8 @@ builder.Services.AddOpenApi();
 
 var jwt = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()
     ?? throw new InvalidOperationException("Jwt settings are missing.");
+if (Encoding.UTF8.GetByteCount(jwt.Key ?? "") < 32)
+    throw new InvalidOperationException("Jwt:Key must be at least 32 bytes. Set it with user-secrets or the Jwt__Key environment variable.");
 var users = builder.Configuration.GetSection("Auth:Users").Get<DemoUser[]>() ?? [];
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton<TokenService>();

@@ -1,5 +1,7 @@
 # DocuMind
 
+[![CI](https://github.com/NejatSENER/documind/actions/workflows/ci.yml/badge.svg)](https://github.com/NejatSENER/documind/actions/workflows/ci.yml)
+
 Şirket dokümanlarıyla sohbet eden bir RAG asistanı. Dokümanlar parçalara bölünüp vektöre çevriliyor, sorular hybrid search ile aranıyor, cevaplar yalnızca bulunan kaynaklara dayanarak, kaynak etiketiyle ve SSE üzerinden akış halinde üretiliyor. İsteğe bağlı olarak iki agent'lı (araştırmacı + denetçi) bir Semantic Kernel akışı da var.
 
 ## Mimari
@@ -37,7 +39,7 @@ dotnet run --project src/DocuMind.Worker
 dotnet run --project src/DocuMind.Api --urls http://localhost:5258
 ```
 
-Arayüz: http://localhost:5258 · RabbitMQ paneli: http://localhost:15672. Geliştirme kullanıcıları `src/DocuMind.Api/appsettings.json` içindeki `Auth:Users` bölümünde. Arayüzü değiştirince `cd web && npm run build`.
+Arayüz: http://localhost:5258 · RabbitMQ paneli: http://localhost:15672. Geliştirme kullanıcıları ve JWT anahtarı `src/DocuMind.Api/appsettings.Development.json` içinde. Başka bir ortamda `Jwt__Key` ortam değişkeni (en az 32 byte) verilmezse API açılmaz. Arayüzü değiştirince `cd web && npm run build`.
 
 Testler ve değerlendirme:
 
@@ -67,4 +69,4 @@ cd eval && dotnet run run-eval.cs
 - Embedding modeli (`nomic-embed-text`) İngilizce ağırlıklı, Türkçe skorlar birbirine yakın, diller arası arama çalışmıyor. Çok dilli bir model (ör. `bge-m3`) denenmeli.
 - Query rewriting bazen anlamı kaydırıyor ("5 yılını dolduran" → "5 yıldan sonra işe giren"). Hata sonraki adımlara yayılıyor, sistem "bulunamadı" diyerek güvenli başarısız oluyor.
 - Mesajda dokümanın tamamı taşınıyor. Büyük dosyalar için Blob Storage + claim-check gerekir.
-- Geliştirme kullanıcıları ve anahtarlar `appsettings.json`'da. Gerçek ortamda Key Vault ve bir kimlik sağlayıcı (Entra ID) kullanılmalı.
+- Demo kullanıcılar config'de duruyor. Gerçek ortamda Key Vault ve bir kimlik sağlayıcı (Entra ID) kullanılmalı.
